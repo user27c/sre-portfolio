@@ -1,0 +1,85 @@
+{{ define "main" }}
+<article class="post-article">
+  <header class="article-header">
+    <time class="article-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 02, 2006" }}</time>
+    <h1 class="article-title">{{ .Title }}</h1>
+    
+    <div class="article-meta">
+      <span class="reading-time">Reading time: {{ .ReadingTime }} min</span>
+      {{ if .Params.categories }}
+        <span class="meta-separator">&bull;</span>
+        <span class="article-categories">
+          Category: 
+          {{ range .Params.categories }}
+            <a href="{{ "categories/" | relURL }}{{ . | urlize }}" class="meta-category">{{ . }}</a>
+          {{ end }}
+        </span>
+      {{ end }}
+    </div>
+  </header>
+  
+  <div class="article-content markdown-body">
+    {{ .Content }}
+  </div>
+  
+  {{ if .Params.tags }}
+    <footer class="article-footer">
+      <div class="article-tags">
+        {{ range .Params.tags }}
+          <a href="{{ "tags/" | relURL }}{{ . | urlize }}" class="tag-chip">#{{ . }}</a>
+        {{ end }}
+      </div>
+    </footer>
+  {{ end }}
+</article>
+
+<!-- Custom Code Block Copy Utility Script -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const codeBlocks = document.querySelectorAll("pre");
+    codeBlocks.forEach(block => {
+      block.style.position = "relative";
+      
+      const button = document.createElement("button");
+      button.className = "copy-code-btn";
+      button.type = "button";
+      button.innerText = "Copy";
+      block.appendChild(button);
+
+      button.addEventListener("click", () => {
+        const codeElement = block.querySelector("code");
+        let text = codeElement ? codeElement.innerText : block.innerText;
+        if (text.endsWith("Copy")) {
+          text = text.slice(0, -4);
+        }
+        
+        navigator.clipboard.writeText(text).then(() => {
+          button.innerText = "Copied!";
+          button.classList.add("copied");
+          setTimeout(() => {
+            button.innerText = "Copy";
+            button.classList.remove("copied");
+          }, 2000);
+        }).catch(err => {
+          console.error("Failed to copy code: ", err);
+        });
+      });
+    });
+  });
+</script>
+{{ end }}
+
+{{ define "sidebar" }}
+<!-- 1. Reusable Developer Profile Widget -->
+{{ partial "profile_card.html" . }}
+
+<!-- 2. Sticky Table of Contents Widget -->
+{{ if .TableOfContents }}
+<div class="widget-wrap glass-card toc-widget-sticky">
+  <h4 class="widget-title">On This Page</h4>
+  <div class="toc-content">
+    {{ .TableOfContents }}
+  </div>
+</div>
+{{ end }}
+{{ end }}

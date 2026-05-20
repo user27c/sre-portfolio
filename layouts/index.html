@@ -1,0 +1,66 @@
+{{ define "main" }}
+<section class="intro-section">
+  <h1 class="intro-title">{{ .Site.Params.author | default "22/7." }}</h1>
+  <p class="intro-bio">{{ .Site.Params.description | default "computer science student..." }}</p>
+</section>
+
+<section class="posts-section">
+  <h2 class="section-title">Recent Posts</h2>
+  <ul class="posts-list">
+    {{ $posts := where .Site.RegularPages "Type" "post" }}
+    {{ range $posts }}
+      <li class="post-item">
+        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02, 2006" }}</time>
+        <div class="post-meta-wrap">
+          <a href="{{ .RelPermalink }}" class="post-link">{{ .Title }}</a>
+          {{ if .Params.tags }}
+            <span class="post-tags-inline">
+              {{ range .Params.tags }}
+                <a href="{{ "tags/" | relURL }}{{ . | urlize }}" class="post-tag-chip">#{{ . }}</a>
+              {{ end }}
+            </span>
+          {{ end }}
+        </div>
+      </li>
+    {{ else }}
+      <p class="empty-message">No posts found.</p>
+    {{ end }}
+  </ul>
+</section>
+{{ end }}
+
+{{ define "sidebar" }}
+<!-- 1. Search Box Widget -->
+<div class="widget-wrap glass-card search-widget popup-trigger">
+  <span class="search-widget-icon">🔍</span>
+  <span class="search-widget-text">Search posts...</span>
+  <kbd class="search-widget-key">⌘K</kbd>
+</div>
+
+<!-- 2. Reusable Developer Profile Widget -->
+{{ partial "profile_card.html" . }}
+
+<!-- 3. Categories & Tags Widget -->
+<div class="widget-wrap glass-card taxonomies-widget">
+  <h4 class="widget-title">Categories</h4>
+  <div class="widget-categories-list">
+    {{ range $name, $taxonomy := .Site.Taxonomies.categories }}
+      <a href="{{ "categories/" | relURL }}{{ $name | urlize }}" class="widget-category-item">
+        <span class="category-name">{{ $name }}</span>
+        <span class="category-count">{{ len $taxonomy.Pages }}</span>
+      </a>
+    {{ else }}
+      <span class="empty-message">None</span>
+    {{ end }}
+  </div>
+  
+  <h4 class="widget-title" style="margin-top: 1.5rem;">Tags</h4>
+  <div class="widget-tags-cloud">
+    {{ range $name, $taxonomy := .Site.Taxonomies.tags }}
+      <a href="{{ "tags/" | relURL }}{{ $name | urlize }}" class="post-tag-chip">#{{ $name }}</a>
+    {{ else }}
+      <span class="empty-message">None</span>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

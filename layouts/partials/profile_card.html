@@ -1,0 +1,69 @@
+<!-- Developer Profile Widget -->
+<div class="widget-wrap glass-card profile-card">
+  <div class="profile-avatar-wrap">
+    {{ $avatar := .Site.Params.avatar | default "avatar/avatar.webp" }}
+    {{ if eq $avatar "avatar.webp" }}
+      {{ $avatar = "avatar/avatar.webp" }}
+    {{ end }}
+    <img class="profile-avatar" src="{{ $avatar | relURL }}" alt="Profile Avatar" />
+  </div>
+  <h3 class="profile-name">{{ .Site.Params.author | default "22/7." }}</h3>
+  <div class="profile-subtitle">
+    <span id="profile-typing-text">> Initializing...</span><span class="typing-cursor">|</span>
+  </div>
+  
+  <div class="profile-social">
+    <a href="{{ .Site.Params.social.github }}" target="_blank" class="social-link" title="GitHub">
+      <span class="social-icon">🐙</span> GitHub
+    </a>
+    <a href="{{ .Site.Params.social.email }}" class="social-link" title="Email">
+      <span class="social-icon">✉️</span> Email
+    </a>
+  </div>
+</div>
+
+<!-- Typewriter bio script -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const strings = [
+      "computer science student...",
+      "loading neural parameters...",
+      "hello world. I am 22/7.",
+      "radical openness. brutal efficiency."
+    ];
+    let currentStringIndex = 0;
+    let currentCharacterIndex = 0;
+    let isDeleting = false;
+    const targetElement = document.getElementById("profile-typing-text");
+    if (!targetElement) return;
+
+    function type() {
+      const fullText = strings[currentStringIndex];
+      if (isDeleting) {
+        targetElement.innerText = "> " + fullText.substring(0, currentCharacterIndex - 1);
+        currentCharacterIndex--;
+      } else {
+        targetElement.innerText = "> " + fullText.substring(0, currentCharacterIndex + 1);
+        currentCharacterIndex++;
+      }
+
+      let delay = 60;
+      if (isDeleting) {
+        delay /= 2;
+      }
+
+      if (!isDeleting && currentCharacterIndex === fullText.length) {
+        delay = 2500;
+        isDeleting = true;
+      } else if (isDeleting && currentCharacterIndex === 0) {
+        isDeleting = false;
+        currentStringIndex = (currentStringIndex + 1) % strings.length;
+        delay = 400;
+      }
+
+      setTimeout(type, delay);
+    }
+    
+    setTimeout(type, 800);
+  });
+</script>

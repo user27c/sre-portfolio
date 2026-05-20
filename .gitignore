@@ -1,0 +1,6 @@
+# Hugo build cache & generated assets
+resources/_gen/
+.hugo_build.lock
+
+# Local preview output (CI builds and deploys via GitHub Actions)
+public/

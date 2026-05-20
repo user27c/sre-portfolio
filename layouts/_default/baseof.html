@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="{{ .Site.Language.Locale | default "zh-CN" }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title>
+    
+    <!-- Google Font Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Render theme styling -->
+    {{- $style := resources.Get "css/main.scss" | toCSS | minify | fingerprint -}}
+    <link rel="stylesheet" href="{{ $style.RelPermalink }}">
+    
+    <!-- Blocking script to prevent flash of wrong theme -->
+    <script>
+      (function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('force-theme') === 'light') {
+          document.documentElement.classList.remove('dark');
+          return;
+        }
+        if (urlParams.get('force-theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+          return;
+        }
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- Background Canvas Particles -->
+    <canvas id="tech-particles"></canvas>
+    
+    <!-- Sticky Glass Navbar (Full Screen Width) -->
+    <header class="site-header">
+      <div class="header-container">
+        <a href="{{ "" | relLangURL }}" class="site-logo">
+          <span class="logo-path">
+            {{- if .IsHome -}}
+              ~/
+            {{- else if eq .Type "archives" -}}
+              ~/posts
+            {{- else if eq .Section "projects" -}}
+              ~/projects
+            {{- else if and .File (eq .File.ContentBaseName "about") -}}
+              ~/about
+            {{- else if and .IsPage .File -}}
+              ~/posts/{{ .File.ContentBaseName }}
+            {{- else if and .IsPage (not .File) -}}
+              ~/posts/{{ .Title }}
+            {{- else if eq .Data.Singular "tag" -}}
+              ~/tags/{{ .Title }}
+            {{- else if eq .Data.Singular "category" -}}
+              ~/categories/{{ .Title }}
+            {{- else -}}
+              ~/{{ .Title }}
+            {{- end -}}
+          </span>
+          <span class="logo-cursor">_</span>
+        </a>
+        
+        <nav class="site-nav">
+          <a href="{{ "" | relLangURL }}" class="nav-link">Home</a>
+          <a href="{{ "archives" | relLangURL }}" class="nav-link">Posts</a>
+          <a href="{{ "projects" | relLangURL }}" class="nav-link">Projects</a>
+          <a href="{{ "about" | relLangURL }}" class="nav-link">About</a>
+          
+          <!-- Minimalist Mode Toggler -->
+          <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="toggle-icon-light">☼</span>
+            <span class="toggle-icon-dark">☾</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+    
+    <!-- Centered Blog Layout -->
+    <div class="site-wrapper">
+      <!-- Two Column Sidebar Grid -->
+      <div class="site-grid">
+        <main class="site-main">
+          {{ block "main" . }}{{ end }}
+        </main>
+        
+        <aside class="site-sidebar">
+          {{ block "sidebar" . }}{{ end }}
+        </aside>
+      </div>
+      
+      <footer class="site-footer">
+        <div class="footer-container">
+          <span>&copy; {{ now.Format "2006" }} {{ strings.TrimSuffix "." (.Site.Params.author | default "22/7") }}.</span>
+          <span class="footer-meta">Minimalist &bull; Geek</span>
+        </div>
+      </footer>
+    </div>
+    
+    <!-- Local JSON Search Overlay (Styled as Glassmorphism Modal) -->
+    {{- if .Site.Params.local_search.enable -}}
+      <div class="site-search">
+        <div class="reimu-popup popup glass-card">
+          <div class="reimu-search">
+            <div class="reimu-search-input-icon">🔍</div>
+            <div id="reimu-search-input">
+              <input type="text" id="local-search-input" placeholder="Search posts..." autocomplete="off" autofocus>
+            </div>
+            <div class="popup-btn-close">&times;</div>
+          </div>
+          <div class="reimu-results">
+            <div id="reimu-stats"></div>
+            <div id="reimu-hits"></div>
+          </div>
+        </div>
+      </div>
+      <div id="mask" class="hide"></div>
+      
+      <script>window.__SEARCH_INDEX_URL = '{{ "algolia.json" | relURL }}';</script>
+      {{ $localSearchJs := resources.Get "js/local-search.js" }}
+      {{ if $localSearchJs }}
+        <script src="{{ $localSearchJs.RelPermalink }}" defer></script>
+      {{ end }}
+    {{- end -}}
+    
+    <!-- Core logic for mode toggle and backdrop click closing -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const toggleBtn = document.getElementById("theme-toggle");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", () => {
+            const isDark = document.documentElement.classList.toggle("dark");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+          });
+        }
+        
+        // Close search popup when clicking the backdrop mask
+        const mask = document.getElementById("mask");
+        if (mask) {
+          mask.addEventListener("click", () => {
+            const popup = document.querySelector(".popup");
+            if (popup && popup.__closePopup) {
+              popup.__closePopup();
+            }
+          });
+        }
+        
+        window.addEventListener("keydown", (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+            e.preventDefault();
+            if (typeof window.openLocalSearch === "function") {
+              window.openLocalSearch();
+            } else {
+              document.querySelector(".popup-trigger")?.click();
+            }
+          }
+        });
+      });
+    </script>
+    
+    <!-- Background Particle Engine -->
+    {{- $particlesJs := resources.Get "js/particles.js" -}}
+    {{- if $particlesJs -}}
+      {{- $particlesJsSecure := $particlesJs | resources.Minify | resources.Fingerprint -}}
+      <script src="{{ $particlesJsSecure.RelPermalink }}" defer></script>
+    {{- end -}}
+    
+    <!-- Import After Footer logic for theme plugins (like search, Meting, etc.) -->
+    {{- partialCached "afterFooter.html" . -}}
+  </body>
+</html>

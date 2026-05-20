@@ -1,0 +1,107 @@
+{{ define "main" }}
+{{- partial "github_load.html" . -}}
+{{- $gh := .Scratch.Get "github" -}}
+{{- $user := $gh.user -}}
+{{- $repos := $gh.repos -}}
+{{- $username := $gh.username -}}
+
+<section class="projects-section list-section">
+  <header class="list-header">
+    <h1 class="list-title">Projects</h1>
+    <p class="list-subtitle">// public repositories @{{ $username }}</p>
+  </header>
+
+  {{- if $gh.error -}}
+    <div class="github-fetch-error glass-card">
+      <p class="error-msg">$ gh api — failed to fetch GitHub data at build time.</p>
+      <p class="error-detail">{{ $gh.error }}</p>
+      <p class="error-hint">Check network during <code>hugo</code> build, or add <code>data/github_fallback.json</code>.</p>
+    </div>
+  {{- else if not $user.login -}}
+    <div class="github-fetch-error glass-card">
+      <p class="error-msg">$ gh api — empty user profile.</p>
+    </div>
+  {{- else -}}
+    <div class="github-profile glass-card">
+      <a href="{{ $user.html_url }}" class="github-profile-link" target="_blank" rel="noopener noreferrer">
+        <img
+          class="github-profile-avatar"
+          src="{{ $user.avatar_url }}"
+          alt="{{ $user.login }} avatar"
+          width="72"
+          height="72"
+          loading="lazy"
+        />
+      </a>
+      <div class="github-profile-body">
+        <div class="github-profile-head">
+          <a href="{{ $user.html_url }}" class="github-profile-name" target="_blank" rel="noopener noreferrer">
+            {{ $user.name | default $user.login }}
+          </a>
+          <span class="github-profile-login">@{{ $user.login }}</span>
+        </div>
+        {{- with $user.bio -}}
+          <p class="github-profile-bio">{{ . }}</p>
+        {{- else -}}
+          <p class="github-profile-bio github-profile-bio--empty">// no bio</p>
+        {{- end -}}
+        <ul class="github-profile-stats">
+          <li><span class="stat-value">{{ $user.public_repos }}</span> repos</li>
+          <li><span class="stat-value">{{ $user.followers }}</span> followers</li>
+          <li><span class="stat-value">{{ $user.following }}</span> following</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="github-repos-header">
+      <h2 class="github-repos-title">$ gh repo list --public</h2>
+      <span class="github-repos-count">{{ len $repos }} shown</span>
+    </div>
+
+    {{- if $repos -}}
+      <ul class="github-repo-list">
+        {{- range $repos -}}
+          <li class="github-repo-item glass-card">
+            <a href="{{ .html_url }}" class="github-repo-link" target="_blank" rel="noopener noreferrer">
+              <div class="github-repo-top">
+                <span class="github-repo-name">{{ .name }}</span>
+                {{- if .private -}}
+                  <span class="github-repo-badge">private</span>
+                {{- end -}}
+              </div>
+              {{- with .description -}}
+                <p class="github-repo-desc">{{ . }}</p>
+              {{- else -}}
+                <p class="github-repo-desc github-repo-desc--empty">// no description</p>
+              {{- end -}}
+              <div class="github-repo-meta">
+                {{- with .language -}}
+                  <span class="github-repo-lang">
+                    <span class="lang-dot" aria-hidden="true"></span>{{ . }}
+                  </span>
+                {{- end -}}
+                {{- if .stargazers_count -}}
+                  <span class="github-repo-stars">★ {{ .stargazers_count }}</span>
+                {{- end -}}
+                <span class="github-repo-updated">updated {{ (time .updated_at).Format "2006-01-02" }}</span>
+              </div>
+            </a>
+          </li>
+        {{- end -}}
+      </ul>
+    {{- else -}}
+      <p class="empty-message">No public repositories to display.</p>
+    {{- end -}}
+  {{- end -}}
+</section>
+{{ end }}
+
+{{ define "sidebar" }}
+<div class="widget-wrap glass-card search-widget popup-trigger">
+  <span class="search-widget-icon">🔍</span>
+  <span class="search-widget-text">Search posts...</span>
+  <kbd class="search-widget-key">⌘K</kbd>
+</div>
+
+{{ partial "profile_card.html" . }}
+{{ end }}

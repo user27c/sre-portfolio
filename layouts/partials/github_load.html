@@ -1,0 +1,68 @@
+{{- $cfg := site.Data.github -}}
+{{- $username := $cfg.username | default "22-7-co" -}}
+{{- $excludeForks := $cfg.excludeForks | default true -}}
+{{- $excludeRepos := $cfg.excludeRepos | default (slice) -}}
+{{- $maxRepos := $cfg.maxRepos | default 50 -}}
+{{- $sortBy := $cfg.sortBy | default "updated" -}}
+
+{{- $user := dict -}}
+{{- $repos := slice -}}
+{{- $fetchError := "" -}}
+
+{{- $userURL := printf "https://api.github.com/users/%s" $username -}}
+{{- $reposURL := printf "https://api.github.com/users/%s/repos?per_page=100&type=owner&sort=updated" $username -}}
+{{- if eq $sortBy "stars" -}}
+  {{- $reposURL = printf "https://api.github.com/users/%s/repos?per_page=100&type=owner&sort=stars" $username -}}
+{{- end -}}
+
+{{- with try (resources.GetRemote $userURL) -}}
+  {{- with .Err -}}
+    {{- $fetchError = printf "user: %v" . -}}
+  {{- else -}}
+    {{- $user = .Value.Content | transform.Unmarshal -}}
+  {{- end -}}
+{{- else -}}
+  {{- $fetchError = "user: request failed" -}}
+{{- end -}}
+
+{{- if not $fetchError -}}
+  {{- with try (resources.GetRemote $reposURL) -}}
+    {{- with .Err -}}
+      {{- $fetchError = printf "repos: %v" . -}}
+    {{- else -}}
+      {{- $rawRepos := .Value.Content | transform.Unmarshal -}}
+      {{- range $rawRepos -}}
+        {{- $skip := false -}}
+        {{- if and $excludeForks .fork -}}
+          {{- $skip = true -}}
+        {{- end -}}
+        {{- if in $excludeRepos .name -}}
+          {{- $skip = true -}}
+        {{- end -}}
+        {{- if not $skip -}}
+          {{- $repos = $repos | append . -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if eq $sortBy "stars" -}}
+        {{- $repos = sort $repos "stargazers_count" "desc" -}}
+      {{- else -}}
+        {{- $repos = sort $repos "updated_at" "desc" -}}
+      {{- end -}}
+      {{- if gt (len $repos) $maxRepos -}}
+        {{- $repos = first $maxRepos $repos -}}
+      {{- end -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $fetchError = "repos: request failed" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- with site.Data.github_fallback -}}
+  {{- if and $fetchError .user -}}
+    {{- $user = .user -}}
+    {{- $repos = .repos | default $repos -}}
+    {{- $fetchError = "" -}}
+  {{- end -}}
+{{- end -}}
+
+{{- .Scratch.Set "github" (dict "user" $user "repos" $repos "username" $username "error" $fetchError) -}}

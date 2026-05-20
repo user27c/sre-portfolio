@@ -1,0 +1,33 @@
+{{ define "main" }}
+<section class="list-section">
+  <header class="list-header">
+    <h1 class="list-title">{{ .Title }}</h1>
+    <p class="list-subtitle">{{ len .Data.Terms }} items found</p>
+  </header>
+  
+  <div class="terms-cloud">
+    {{ range $key, $value := .Data.Terms }}
+      <a href="{{ "/" | relURL }}{{ $.Data.Plural | urlize }}/{{ $key | urlize }}" class="term-item">
+        <span class="term-name">
+          {{ if eq $.Data.Singular "tag" }}#{{ end }}{{ $key }}
+        </span>
+        <span class="term-count">({{ len $value.Pages }})</span>
+      </a>
+    {{ else }}
+      <p class="empty-message">No terms found.</p>
+    {{ end }}
+  </div>
+</section>
+{{ end }}
+
+{{ define "sidebar" }}
+<!-- 1. Search Box Widget -->
+<div class="widget-wrap glass-card search-widget popup-trigger">
+  <span class="search-widget-icon">🔍</span>
+  <span class="search-widget-text">Search posts...</span>
+  <kbd class="search-widget-key">⌘K</kbd>
+</div>
+
+<!-- 2. Reusable Developer Profile Widget -->
+{{ partial "profile_card.html" . }}
+{{ end }}

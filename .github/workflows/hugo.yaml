@@ -1,24 +1,19 @@
 name: 发布 Hugo 网站到 GitHub Pages
 
 on:
-  # 在推送到默认分支时运行
   push:
     branches:
       - main
-
-  # 允许手动触发
   workflow_dispatch:
 
-# 设置 GITHUB_TOKEN 权限
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# 并发控制：只允许一个部署正在进行
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -34,48 +29,28 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      # 优化 1: 合并 Node 环境设置并开启缓存
-      - name: 设置 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: 安装 Hugo
+      - name: 安装 Hugo Extended
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: '0.160.0'
+          hugo-version: "0.161.1"
           extended: true
 
-      # 优化 3: 合并所有依赖安装
-      - name: 安装依赖
+      - name: 刷新 GitHub 项目数据
         run: |
-          # 1. 先安装 package.json 里的原有依赖（如果有的话）
-          if [[ -f package.json ]]; then
-            npm install
-          fi
-          # 2. 额外强制安装 algoliasearch，确保脚本一定能跑
-          npm install algoliasearch
+          chmod +x scripts/fetch-github.sh
+          ./scripts/fetch-github.sh
 
       - name: 设置 GitHub Pages
         id: pages
         uses: actions/configure-pages@v5
 
       - name: 使用 Hugo 构建
-        run: |
-          hugo --gc --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
+        run: hugo --gc --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
 
       - name: 上传构建产物
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
-
-      # 优化 4: 直接运行脚本，不再重复 setup-node
-      - name: 上传到 Algolia
-        env:
-          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
-          ALGOLIA_ADMIN_KEY: ${{ secrets.ALGOLIA_ADMIN_KEY }}
-          ALGOLIA_INDEX_NAME: 22-7-co-blog
-        run: node scripts/algolia-upload.js
 
   deploy:
     environment:
@@ -86,8 +61,8 @@ jobs:
     steps:
       - name: 部署到 GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5   # ← 已更新到 v5（这是你原脚本最需要改的地方）
-  # ==================== QQ 邮箱通知 ====================
+        uses: actions/deploy-pages@v5
+
   notify:
     needs: deploy
     runs-on: ubuntu-latest
@@ -109,8 +84,8 @@ jobs:
             状态: ${{ needs.deploy.result }}
             提交人: ${{ github.actor }}
             提交信息: ${{ github.event.head_commit.message }}
-            
+
             查看 Action 运行详情:
-            https://github.com{{ github.repository }}/actions/runs/${{ github.run_id }}
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
             在线预览：https://${{ github.repository_owner }}.github.io/
           html_body: false

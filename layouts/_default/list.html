@@ -1,0 +1,46 @@
+{{ define "main" }}
+<section class="list-section">
+  <header class="list-header">
+    <h1 class="list-title">
+      {{ if eq .Type "archives" }}
+        Archives
+      {{ else }}
+        {{ .Title }}
+      {{ end }}
+    </h1>
+    <p class="list-subtitle">{{ len .Pages }} articles found</p>
+  </header>
+
+  <ul class="posts-list">
+    {{ range .Pages }}
+      <li class="post-item">
+        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02, 2006" }}</time>
+        <div class="post-meta-wrap">
+          <a href="{{ .RelPermalink }}" class="post-link">{{ .Title }}</a>
+          {{ if .Params.tags }}
+            <span class="post-tags-inline">
+              {{ range .Params.tags }}
+                <a href="{{ "tags/" | relURL }}{{ . | urlize }}" class="post-tag-chip">#{{ . }}</a>
+              {{ end }}
+            </span>
+          {{ end }}
+        </div>
+      </li>
+    {{ else }}
+      <p class="empty-message">No posts found.</p>
+    {{ end }}
+  </ul>
+</section>
+{{ end }}
+
+{{ define "sidebar" }}
+<!-- 1. Search Box Widget -->
+<div class="widget-wrap glass-card search-widget popup-trigger">
+  <span class="search-widget-icon">🔍</span>
+  <span class="search-widget-text">Search posts...</span>
+  <kbd class="search-widget-key">⌘K</kbd>
+</div>
+
+<!-- 2. Reusable Developer Profile Widget -->
+{{ partial "profile_card.html" . }}
+{{ end }}
