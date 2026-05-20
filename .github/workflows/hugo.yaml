@@ -5,6 +5,9 @@ on:
     branches:
       - main
   workflow_dispatch:
+  # Rebuild /projects/ when GitHub repos change (static site = snapshot at deploy time)
+  schedule:
+    - cron: "0 6 * * *"  # daily 06:00 UTC (14:00 Asia/Shanghai)
 
 permissions:
   contents: read
