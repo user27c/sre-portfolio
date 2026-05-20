@@ -5,16 +5,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('local-search-input');
   const hitsContainer = document.getElementById('reimu-hits');
   const statsContainer = document.getElementById('reimu-stats');
-  const popup = document.querySelector('.popup');
+  const popup = document.querySelector('.site-search .reimu-popup.popup');
   const mask = document.getElementById('mask');
   const siteSearch = document.querySelector('.site-search');
   const indexUrl = window.__SEARCH_INDEX_URL || '/algolia.json';
 
+  if (!siteSearch || !popup || !searchInput || !hitsContainer || !statsContainer) {
+    console.warn('Local search: required DOM elements missing.');
+    return;
+  }
+
   const openSearch = () => {
+    if (!siteSearch || !popup) return;
     document.body.style.overflow = 'hidden';
     siteSearch.classList.add('show');
-    mask.classList.remove('hide');
-    setTimeout(() => searchInput.focus(), 100);
+    popup.classList.add('show');
+    mask?.classList.remove('hide');
+    setTimeout(() => searchInput?.focus(), 100);
 
     // Fetch data lazy load
     if (!isFetched) {
@@ -36,10 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Close Search Modal
   const closeSearch = () => {
     document.body.style.overflow = '';
-    siteSearch.classList.remove('show');
-    mask.classList.add('hide');
-    searchInput.value = '';
-    hitsContainer.innerHTML = '';
+    siteSearch?.classList.remove('show');
+    popup?.classList.remove('show');
+    mask?.classList.add('hide');
+    if (searchInput) searchInput.value = '';
+    if (hitsContainer) hitsContainer.innerHTML = '';
     if (isFetched) {
         statsContainer.innerHTML = '';
     }
@@ -65,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Escape key to close
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && siteSearch.classList.contains('show')) {
+    if (e.key === 'Escape' && popup?.classList.contains('show')) {
       closeSearch();
     }
   });

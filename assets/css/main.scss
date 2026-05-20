@@ -1002,6 +1002,14 @@ pre:hover .copy-code-btn {
   }
 }
 
+.site-search {
+  pointer-events: none;
+
+  &.show {
+    pointer-events: auto;
+  }
+}
+
 .reimu-popup.popup {
   display: none;
   position: fixed;
@@ -1018,7 +1026,15 @@ pre:hover .copy-code-btn {
     display: block;
     animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+}
+
+.site-search.show .reimu-popup.popup,
+.reimu-popup.popup.show {
+  display: block;
+  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reimu-popup.popup {
   .reimu-search {
     display: flex;
     align-items: center;

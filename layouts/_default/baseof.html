@@ -144,7 +144,7 @@
         const mask = document.getElementById("mask");
         if (mask) {
           mask.addEventListener("click", () => {
-            const popup = document.querySelector(".popup");
+            const popup = document.querySelector(".site-search .reimu-popup.popup");
             if (popup && popup.__closePopup) {
               popup.__closePopup();
             }
