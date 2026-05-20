@@ -312,13 +312,8 @@ html.dark .theme-toggle-btn {
 
 .footer-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-}
-
-.footer-meta {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
 }
 
 // 4. Sidebar Widgets

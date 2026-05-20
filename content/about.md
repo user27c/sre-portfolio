@@ -20,4 +20,4 @@ draft: false
 
 ### 更多信息
 - **博客建立时间**：2026 年
-- **使用的主题**：hugo-theme-reimu
+- **使用的主题**：hugo-theme-geek
