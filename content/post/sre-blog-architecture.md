@@ -5,6 +5,8 @@ draft: false
 description: "通过 GitHub Actions GitOps 闭环、Nginx 非 Root 镜像构建以及声明式 Kubernetes 配置，以工业级标准部署个人网站。"
 ---
 
+<span style="display: inline-block; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); padding: 4px 12px; border-radius: 16px; font-size: 13px; font-weight: 500; margin-bottom: 20px;">🤖 本文由 AI (Antigravity Agent) 协同撰写</span>
+
 # 我的 SRE 个人博客：如何实现零成本、自动化部署与高可用维护
 
 在 SRE 团队中，**“成本优化 (Cost Optimization)”**、**“变更自动化 (CI/CD)”** 和 **“生产安全性 (Security)”** 是评估系统成熟度的核心指标。
