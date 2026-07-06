@@ -53,53 +53,84 @@
       </div>
     </div>
 
-    <div class="github-repos-header">
-      <h2 class="github-repos-title">$ gh repo list --public</h2>
-      <span class="github-repos-count">{{ len $repos }} shown</span>
-    </div>
-
     {{- if $repos -}}
-      <ul class="github-repo-list">
+      <!-- 板块一：精选主打项目 (点击阅读中文深度解析) -->
+      <div class="github-repos-header" style="margin-top: 25px;">
+        <h2 class="github-repos-title">🌟 Featured Projects (点击阅读深度解析文章)</h2>
+      </div>
+      <ul class="github-repo-list" style="margin-bottom: 45px;">
         {{- range $repos -}}
-          {{- $link := .html_url -}}
-          {{- $target := "_blank" -}}
           {{- if eq .name "Kube-AI-Diagnoser" -}}
             {{- $page := site.GetPage "projects/kube-ai-diagnoser.md" -}}
+            {{- $link := "/projects/kube-ai-diagnoser/" | relURL -}}
             {{- if $page -}}
               {{- $link = $page.RelPermalink -}}
-            {{- else -}}
-              {{- $link = "/projects/kube-ai-diagnoser/" | relURL -}}
             {{- end -}}
-            {{- $target = "_self" -}}
+            <li class="github-repo-item glass-card" style="border-left: 4px solid #3b82f6;">
+              <a href="{{ $link }}" class="github-repo-link" target="_self" rel="noopener noreferrer">
+                <div class="github-repo-top">
+                  <span class="github-repo-name">{{ .name }}</span>
+                  <span class="github-repo-badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 600;">🌟 核心推荐 (点击阅读)</span>
+                </div>
+                {{- with .description -}}
+                  <p class="github-repo-desc">{{ . }}</p>
+                {{- else -}}
+                  <p class="github-repo-desc">Kubernetes 智能告警降噪与 AI 自动诊断服务。利用 SharedInformer 监听集群事件，结合滑动窗口去重和 LLM 根因定位，实现全自动化排障闭环。</p>
+                {{- end -}}
+                <div class="github-repo-meta">
+                  {{- with .language -}}
+                    <span class="github-repo-lang">
+                      <span class="lang-dot" aria-hidden="true"></span>{{ . }}
+                    </span>
+                  {{- end -}}
+                  <span class="github-repo-updated">updated {{ (time .updated_at).Format "2006-01-02" }}</span>
+                </div>
+              </a>
+            </li>
           {{- end -}}
-          <li class="github-repo-item glass-card">
-            <a href="{{ $link }}" class="github-repo-link" target="{{ $target }}" rel="noopener noreferrer">
-              <div class="github-repo-top">
-                <span class="github-repo-name">{{ .name }}</span>
-                {{- if .private -}}
-                  <span class="github-repo-badge">private</span>
-                {{- end -}}
-              </div>
-              {{- with .description -}}
-                <p class="github-repo-desc">{{ . }}</p>
-              {{- else -}}
-                <p class="github-repo-desc github-repo-desc--empty">// no description</p>
-              {{- end -}}
-              <div class="github-repo-meta">
-                {{- with .language -}}
-                  <span class="github-repo-lang">
-                    <span class="lang-dot" aria-hidden="true"></span>{{ . }}
-                  </span>
-                {{- end -}}
-                {{- if .stargazers_count -}}
-                  <span class="github-repo-stars">★ {{ .stargazers_count }}</span>
-                {{- end -}}
-                <span class="github-repo-updated">updated {{ (time .updated_at).Format "2006-01-02" }}</span>
-              </div>
-            </a>
-          </li>
         {{- end -}}
       </ul>
+
+      <!-- 板块二：其他开源仓库 (点击跳转外部 GitHub 源码) -->
+      <div class="github-repos-header">
+        <h2 class="github-repos-title">📦 Open Source Repositories (点击跳转外部 GitHub 源码)</h2>
+        <span class="github-repos-count">{{ len (where $repos "name" "ne" "Kube-AI-Diagnoser") }} repos</span>
+      </div>
+      {{- $otherRepos := where $repos "name" "ne" "Kube-AI-Diagnoser" -}}
+      {{- if $otherRepos -}}
+        <ul class="github-repo-list">
+          {{- range $otherRepos -}}
+            <li class="github-repo-item glass-card">
+              <a href="{{ .html_url }}" class="github-repo-link" target="_blank" rel="noopener noreferrer">
+                <div class="github-repo-top">
+                  <span class="github-repo-name">{{ .name }}</span>
+                  {{- if .private -}}
+                    <span class="github-repo-badge">private</span>
+                  {{- end -}}
+                </div>
+                {{- with .description -}}
+                  <p class="github-repo-desc">{{ . }}</p>
+                {{- else -}}
+                  <p class="github-repo-desc github-repo-desc--empty">// no description</p>
+                {{- end -}}
+                <div class="github-repo-meta">
+                  {{- with .language -}}
+                    <span class="github-repo-lang">
+                      <span class="lang-dot" aria-hidden="true"></span>{{ . }}
+                    </span>
+                  {{- end -}}
+                  {{- if .stargazers_count -}}
+                    <span class="github-repo-stars">★ {{ .stargazers_count }}</span>
+                  {{- end -}}
+                  <span class="github-repo-updated">updated {{ (time .updated_at).Format "2006-01-02" }}</span>
+                </div>
+              </a>
+            </li>
+          {{- end -}}
+        </ul>
+      {{- else -}}
+        <p class="empty-message">No other repositories to display.</p>
+      {{- end -}}
     {{- else -}}
       <p class="empty-message">No public repositories to display.</p>
     {{- end -}}
