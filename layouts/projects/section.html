@@ -64,7 +64,12 @@
           {{- $link := .html_url -}}
           {{- $target := "_blank" -}}
           {{- if eq .name "Kube-AI-Diagnoser" -}}
-            {{- $link = "/projects/kube-ai-diagnoser/" | relURL -}}
+            {{- $page := site.GetPage "projects/kube-ai-diagnoser.md" -}}
+            {{- if $page -}}
+              {{- $link = $page.RelPermalink -}}
+            {{- else -}}
+              {{- $link = "/projects/kube-ai-diagnoser/" | relURL -}}
+            {{- end -}}
             {{- $target = "_self" -}}
           {{- end -}}
           <li class="github-repo-item glass-card">
