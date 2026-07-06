@@ -61,8 +61,14 @@
     {{- if $repos -}}
       <ul class="github-repo-list">
         {{- range $repos -}}
+          {{- $link := .html_url -}}
+          {{- $target := "_blank" -}}
+          {{- if eq .name "Kube-AI-Diagnoser" -}}
+            {{- $link = "/projects/kube-ai-diagnoser/" | relURL -}}
+            {{- $target = "_self" -}}
+          {{- end -}}
           <li class="github-repo-item glass-card">
-            <a href="{{ .html_url }}" class="github-repo-link" target="_blank" rel="noopener noreferrer">
+            <a href="{{ $link }}" class="github-repo-link" target="{{ $target }}" rel="noopener noreferrer">
               <div class="github-repo-top">
                 <span class="github-repo-name">{{ .name }}</span>
                 {{- if .private -}}
