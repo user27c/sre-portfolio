@@ -11,7 +11,7 @@ draft: false
 - **设定**：大三在读，目前正在“学生”与“社会人”的边界线反复横跳。
 - **技术定位**：**AI-Native DevOps / SRE (Site Reliability Engineering)** 与云原生虚拟化工程师。
 - **理念**：利用自动化消除琐事 (Eliminate Toil)，用可观测性穿透黑盒，用软件工程手段解决系统运维的稳定性痛点。
-- **热爱**：Linux 底层性能调优 & AI 工具流 & 极简高效开发。
+- **热爱**：AI 前沿应用探索 & Linux 底层调优 & 极简高效开发。
 
 “不执于器，而敏于道。”
 
@@ -19,15 +19,15 @@ draft: false
 
 ## 🛠️ 我的极客工具箱与技术栈 (Skills)
 
-### 🤖 AI-Native & MLOps 实践
-- **AI 辅助流水线**：将 **Ollama** (本地大模型推理引擎) 部署于工作流中，善用 AI 智能终端 **Warp**、以及新一代 AI 辅助开发 IDE (**Trae**, **Cursor**) 进行高效率的协同编程。
-- **ML 算力容器运维**：熟练配置 **NVIDIA Container Toolkit**，实现 GPU 物理算力到 Docker 容器环境的深度透传与资源调度。
-- **机器学习运维**：使用 **uv** (极致速度的现代 Python 管理工具) 与 **Miniconda** 构建可靠的算法环境，使用 **MLflow** 进行模型生命周期的运维管理。
+### 🤖 AI 热爱与 AI-Native 探索 (AI Enthusiasm & Practice)
+- **前沿模型追踪**：对 AI 与大语言模型（LLM）的发展保持高度热情。密切追踪 LMSYS Chatbot Arena 等各大模型榜单更新，热衷于研读前沿大模型评测的技术文章与视频，紧跟行业前沿。
+- **模型评测与体验**：拥有强烈的实操欲，在预算和算力允许的情况下，会主动在本地（通过 **Ollama**）或云端对最新的开源（如 LLaMA, DeepSeek, Qwen）及闭源模型进行垂直场景的 Benchmark 评测，探寻 AI 降本增效的上限。
+- **智能工具链集成**：将 AI 协同深度融入日常编程，熟练使用 **Warp** (AI 智能终端)、以及新一代 AI 辅助开发 IDE (**Trae**, **Cursor**) 进行高效率的研发交付。
+- **ML 算力容器运维**：熟练配置 **NVIDIA Container Toolkit**，实现 GPU 物理算力到 Docker 容器环境的深度透传与资源调度；使用 **uv** 与 **Miniconda** 快速部署 MLOps 算法环境，使用 **MLflow** 协助模型生命周期的运维。
 
-### 🐧 极客 Linux 与内核可观测性 (SRE 底层功底)
-- **主力操作系统**：以 **CachyOS Linux** (基于 x86-64-v3/v4 指令集编译器优化与定制内核的高性能 Arch Linux 滚动分叉) 作为主力开发和运维演练环境，使用 **Niri** (基于 Wayland 的滚动视窗管理器) 搭建极简高效的多终端开发区。
-- **内核无侵入排障**：熟练编写 **bpftrace (eBPF)** 脚本；应用 **bpftune** 进行 Linux 网络及内存子系统的自适应动态性能调优。
-- **深度调试与诊断**：熟练使用 **strace** 跟踪进程系统调用，使用 **tcpdump** 抓包排查协议栈网络故障，使用 **socat**、**nmap** 进行底层网络套接字与端口探测。
+### 🐧 极客 Linux 与系统调试 (Linux & Troubleshooting)
+- **主力操作系统**：以 **CachyOS Linux** (基于 x86-64-v3/v4 指令集编译器优化与定制内核的高性能 Arch Linux 滚动分叉) 作为主力开发和运维演练环境，使用 **Niri** (基于 Wayland 的滚动视窗管理器) 搭建极简高效的多终端平铺开发区。
+- **系统排障与诊断**：熟练使用 **strace** 跟踪进程系统调用，使用 **tcpdump** 抓包排查协议栈网络故障，使用 **socat**、**nmap** 进行底层网络套接字与端口探测。
 - **快照容灾**：使用 **Snapper** 管理 Btrfs 文件系统快照，具备文件系统级的版本回滚与备份容灾设计能力。
 
 ### ☸️ 云原生与虚拟化架构
