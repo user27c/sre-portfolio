@@ -71,7 +71,7 @@ jobs:
   notify:
     needs: deploy
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && secrets.QQ_EMAIL != ''
     steps:
       - name: Send QQ Email Notification
         uses: dawidd6/action-send-mail@v3

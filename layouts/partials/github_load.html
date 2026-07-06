@@ -16,10 +16,12 @@
 {{- end -}}
 
 {{- with try (resources.GetRemote $userURL) -}}
-  {{- with .Err -}}
-    {{- $fetchError = printf "user: %v" . -}}
-  {{- else -}}
+  {{- if .Err -}}
+    {{- $fetchError = printf "user: %v" .Err -}}
+  {{- else if .Value -}}
     {{- $user = .Value.Content | transform.Unmarshal -}}
+  {{- else -}}
+    {{- $fetchError = "user: nil value" -}}
   {{- end -}}
 {{- else -}}
   {{- $fetchError = "user: request failed" -}}
@@ -27,9 +29,9 @@
 
 {{- if not $fetchError -}}
   {{- with try (resources.GetRemote $reposURL) -}}
-    {{- with .Err -}}
-      {{- $fetchError = printf "repos: %v" . -}}
-    {{- else -}}
+    {{- if .Err -}}
+      {{- $fetchError = printf "repos: %v" .Err -}}
+    {{- else if .Value -}}
       {{- $rawRepos := .Value.Content | transform.Unmarshal -}}
       {{- range $rawRepos -}}
         {{- $skip := false -}}
@@ -51,6 +53,8 @@
       {{- if gt (len $repos) $maxRepos -}}
         {{- $repos = first $maxRepos $repos -}}
       {{- end -}}
+    {{- else -}}
+      {{- $fetchError = "repos: nil value" -}}
     {{- end -}}
   {{- else -}}
     {{- $fetchError = "repos: request failed" -}}

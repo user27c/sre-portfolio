@@ -1,6 +1,6 @@
 # GitHub data source for /projects/ (fetched at hugo build via API)
-username = "22-7-co"
+username = "user27c"
 excludeForks = true
-excludeRepos = ["22-7-co.github.io"]
+excludeRepos = ["22-7-co.github.io", "sre-portfolio"]
 maxRepos = 50
 sortBy = "updated" # updated | stars
