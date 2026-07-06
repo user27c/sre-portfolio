@@ -2,7 +2,7 @@
 # Refresh data/github_fallback.json from GitHub API (for offline builds / CI without network).
 set -euo pipefail
 
-USERNAME="${1:-22-7-co}"
+USERNAME="${1:-user27c}"
 OUT="data/github_fallback.json"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
