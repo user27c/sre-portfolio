@@ -2,5 +2,19 @@
 resources/_gen/
 .hugo_build.lock
 
-# Local preview output (CI builds and deploys via GitHub Actions)
+# Local preview output
 public/
+
+# SRE Cleanliness: Exclude backups, local IDE metadata and drafts
+*.bak
+*.back
+*.tmp
+*.log
+
+# Obsidian local sync metadata (Obsidian vault configs)
+.obsidian/
+**/.obsidian/
+.trash/
+
+# Specific files to ignore
+CURSOR-FLCLASH-稳定用法.md
