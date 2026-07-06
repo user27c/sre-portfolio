@@ -74,7 +74,9 @@ jobs:
     if: always()
     steps:
       - name: Send QQ Email Notification
-        if: ${{ secrets.QQ_EMAIL != '' }}
+        env:
+          QQ_EMAIL: ${{ secrets.QQ_EMAIL }}
+        if: ${{ env.QQ_EMAIL != '' }}
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.qq.com
