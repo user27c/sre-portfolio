@@ -22,7 +22,7 @@ draft: false
 ### 🤖 AI 热爱与 AI-Native 探索 (AI Enthusiasm & Practice)
 - **前沿模型追踪**：对 AI 与大语言模型（LLM）的发展保持高度热情。密切追踪 LMSYS Chatbot Arena 等各大模型榜单更新，热衷于研读前沿大模型评测的技术文章与视频，紧跟行业前沿。
 - **模型评测与体验**：拥有强烈的实操欲，在预算和算力允许的情况下，会主动在本地（通过 **Ollama**）或云端对最新的开源（如 LLaMA, DeepSeek, Qwen）及闭源模型进行垂直场景的 Benchmark 评测，探寻 AI 降本增效的上限。
-- **智能工具链集成**：将 AI 协同深度融入日常编程，熟练使用 **Warp** (AI 智能终端)、以及新一代 AI 辅助开发 IDE (**Trae**, **Cursor**) 进行高效率的研发交付。
+- **智能开发辅助 (AI Coding Tools)**：熟练运用 **Claude Code**、**Cursor** 等前沿 AI 编程工具，并积极上手体验/集成 **Codex**、以及国产大模型驱动的 **Zcode**、**Qoder** 等智能编码助手，对不同的 AI 代码补全和交互范式有切身体会，能根据研发和运维需求灵活匹配最适合的 AI 工具；熟练使用 AI 智能终端 **Warp** 进行高效率的命令行交付。
 - **ML 算力容器运维**：熟练配置 **NVIDIA Container Toolkit**，实现 GPU 物理算力到 Docker 容器环境的深度透传与资源调度；使用 **uv** 与 **Miniconda** 快速部署 MLOps 算法环境，使用 **MLflow** 协助模型生命周期的运维。
 
 ### 🐧 极客 Linux 与系统调试 (Linux & Troubleshooting)
