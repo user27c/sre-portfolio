@@ -7,10 +7,15 @@ OUT="data/github_fallback.json"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-curl -fsSL -H "Accept: application/vnd.github+json" -H "User-Agent: hugo-blog" \
+AUTH_HEADER=()
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  AUTH_HEADER=(-H "Authorization: Bearer $GITHUB_TOKEN")
+fi
+
+curl -fsSL "${AUTH_HEADER[@]}" -H "Accept: application/vnd.github+json" -H "User-Agent: hugo-blog" \
   "https://api.github.com/users/${USERNAME}" > "${TMP}/user.json"
 
-curl -fsSL -H "Accept: application/vnd.github+json" -H "User-Agent: hugo-blog" \
+curl -fsSL "${AUTH_HEADER[@]}" -H "Accept: application/vnd.github+json" -H "User-Agent: hugo-blog" \
   "https://api.github.com/users/${USERNAME}/repos?per_page=100&type=owner&sort=updated" > "${TMP}/repos.json"
 
 python3 - "${TMP}/user.json" "${TMP}/repos.json" "${OUT}" <<'PY'

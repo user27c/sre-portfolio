@@ -39,6 +39,8 @@ jobs:
           extended: true
 
       - name: 刷新 GitHub 项目数据
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x scripts/fetch-github.sh
           ./scripts/fetch-github.sh
