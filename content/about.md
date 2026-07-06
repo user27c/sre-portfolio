@@ -40,7 +40,6 @@ draft: false
 ### 🛠️ 基础设施即代码 & 开发工具
 - **IaC 与 CI/CD**：熟练掌握 **Terraform** 与 **Helm**，通过 **GitHub Actions** 自动化流水线（代码 Lint 检查、编译测试、邮件告警通知）实现 GitOps 自动交付。
 - **API 调试与测试**：使用 **Bruno** (基于纯文本、Git 友好的现代开源 API 客户端) 替代 Postman，将 API 测试用例归档并置于 Git 控制之下。
-- **硬件与交叉编译**：熟悉 **RISC-V** 工具链 (`riscv64-elf-gcc`)，对计算机底层 CPU 架构与交叉编译具有扎实理解。
 - **核心语言**：**Golang** (首选开发语言)、**Python / Shell**。
 
 ---
