@@ -39,18 +39,18 @@ description: "通过 Kubernetes Go SDK 监听集群事件，结合本地 sliding
 
 ### 2. 阿里云 ACK 容器服务控制台集群概览
 在阿里云上配置和运行的真实 Kubernetes 托管集群，右侧折线图展示了待治理的真实 Warning 事件趋势波形：
-![阿里云 ACK 控制台集群健康状态与事件概览](../../images/kube-ai-diagnoser/image copy 3.png)
+![阿里云 ACK 控制台集群健康状态与事件概览](../../images/kube-ai-diagnoser/image_copy_3.png)
 
 ### 3. 阿里云 ACR 镜像构建仓库
 在阿里云容器镜像服务（ACR）中自动进行多版本构建与安全托管：
-![ACR控制台版本列表](../../images/kube-ai-diagnoser/image copy 2.png)
+![ACR控制台版本列表](../../images/kube-ai-diagnoser/image_copy_2.png)
 
 ### 4. Serverless Kubernetes ASK 实际运行状态 (双重验证)
 项目以非 Root 容器组规格部署于阿里云 Serverless K8s 实例中。以下分别展示了阿里云弹性容器实例 (ECI/ASK) 控制台运行画面，以及通过终端 `kubectl` 命令行工具观测到的诊断服务与其所监视的故障测试 Pod 状态列表：
 - **云端控制台运行实机**：
-  ![ECI运行状态列表](../../images/kube-ai-diagnoser/image copy 4.png)
+  ![ECI运行状态列表](../../images/kube-ai-diagnoser/image_copy_4.png)
 - **本地终端 kubectl get pods -A 状态排查**：
-  ![终端 kubectl 命令行查看 Pods 运行详情](../../images/kube-ai-diagnoser/image copy.png)
+  ![终端 kubectl 命令行查看 Pods 运行详情](../../images/kube-ai-diagnoser/image_copy.png)
 
 ---
 
@@ -61,7 +61,7 @@ description: "通过 Kubernetes Go SDK 监听集群事件，结合本地 sliding
 
 ### 1. 本地 E2E 自动化测试日志
 运行项目内置的一键 E2E 测试脚本 `./scripts/e2e-test.sh`，流水线会自动检测 K8s 连通性、服务 `/healthz` 状态、飞书 Webhook 连通性，并自动模拟注入一个故障 Pod 验证完整的 AI 诊断链路：
-![E2E测试日志控制台](../../images/kube-ai-diagnoser/image copy 5.png)
+![E2E测试日志控制台](../../images/kube-ai-diagnoser/image_copy_5.png)
 
 ### 2. 自动推送飞书互动卡片展示
 当集群中某个 Pod 因崩溃退出或处于 `Pending` 等故障状态时，系统捕获事件并结合 LLM 深度研判后，向飞书群内推送的真实诊断卡片（包含核心根本原因定位、支撑证据及针对性排查步骤）：
