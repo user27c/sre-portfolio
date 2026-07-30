@@ -17,11 +17,15 @@ categories: ["Projects", "Cloud Native"]
 
 ## 🏗️ 整体架构设计
 
-系统包含四大核心板块：
-1. **源码管理与动态流水线 (GitLab CI/CD)**：利用 Dynamic Child Pipeline 自动感知识别代码变更的服务，进行并行化 Build/Test 矩阵校验，并将镜像推送到阿里云 ACR 容器镜像服务。
-2. **GitOps 渐进式交付 (Argo CD & Argo Rollouts)**：实行声明式 API 驱动的无缝发布，结合 金丝雀发布 (Canary) 与 Automated Rollback 容错机制。
-3. **云原生可观测性 (Prometheus & Grafana)**：全量采集 Node 物理资源、Pods 容器消耗、Kube-State-Metrics 生命周期及应用层 HTTP 吞吐率。
-4. **安全与工程基线 (IaC & Compliance)**：结合 Pod Security Standard (PSS) 与 供应链 SBOM 安全扫描。
+为便于直观理解本项目的端到端全貌，以下包含由 AI 辅助生成的系统整体架构拓扑图与 3D 逻辑全景图：
+
+### 1. 系统模块与数据流拓扑图 (AI 辅助生成)
+![基于阿里云 ACK 的 GitOps CI/CD 与全栈监控系统架构](/images/aliyun-k8s-cicd-lab/ai-architecture-system.jpg)
+*注：上图清晰展示了源码与 CI 构建矩阵（区域一）、GitOps 声明式交付（区域二）、ACK Kubernetes 微服务 Pods 拓扑（区域三）以及 Prometheus/Grafana 全栈可观测性体系（区域四）。*
+
+### 2. 3D 云原生工程视效概览图 (AI 辅助生成)
+![Alibaba Cloud ACK GitOps & Observability 3D Architecture](/images/aliyun-k8s-cicd-lab/ai-architecture-3d.jpg)
+*注：3D 视图展现了从开发者工作流到集群自动化控制、可观测性数据管道的整体运行范式。*
 
 ---
 
