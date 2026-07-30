@@ -228,10 +228,10 @@ icon_font: false
 
 # Custom Font
 custom_font:
-  enable: false
+  enable: true
   article:
-    # - css: https://fontsapi.zeoseven.com/292/main/result.css # font css
-    #   name: LXGW WenKai # font name
+    - css: https://fontsapi.zeoseven.com/292/main/result.css # font css
+      name: LXGW WenKai # font name
   code:
 
 # https://fonts.google.com/
