@@ -32,30 +32,32 @@ categories: ["Projects", "Cloud Native"]
 为进一步厘清系统内部组件间的通信路径，以下使用 Markdown Mermaid 渲染了完整的数据流与逻辑流：
 
 ```mermaid
-flowchart LR
-    subgraph 开发者与源码 ["1. 代码提交"]
-        DEV["开发者 Push"] -->|触发 Webhook| GITLAB["GitLab CI/CD"]
+flowchart TD
+    subgraph A ["1. 代码提交"]
+        DEV["开发者 Push"] -->|Webhook| GITLAB["GitLab CI/CD"]
     end
 
-    subgraph CI构建矩阵 ["2. 自动化构建与测试"]
-        GITLAB -->|动态Child Pipeline| BUILD["11个微服务并行构建 (Go/Java/Node)"]
-        BUILD -->|打包镜像| ACR["阿里云 ACR 容器镜像服务"]
-        BUILD -->|安全扫描| TRIVY["Trivy / SBOM 检查"]
-        ACR -->|更新 Tag| GITOPS_REPO["GitOps 配置仓库 (values-aliyun.yaml)"]
+    subgraph B ["2. 自动化构建与测试"]
+        GITLAB -->|Child Pipeline| BUILD["11 微服务并行构建"]
+        BUILD -->|推送镜像| ACR["阿里云 ACR"]
+        BUILD -->|安全扫描| TRIVY["Trivy"]
+        ACR -->|更新 Tag| GITOPS_REPO["GitOps 仓库"]
     end
 
-    subgraph GitOps交付 ["3. 声明式部署"]
-        GITOPS_REPO -->|监听 Manifest| ARGOCD["Argo CD 控制器"]
-        ARGOCD -->|自动同步与止损| ACK["阿里云 ACK 集群"]
+    subgraph C ["3. 声明式部署"]
+        GITOPS_REPO -->|监听变更| ARGOCD["Argo CD"]
+        ARGOCD -->|同步部署| ACK["阿里云 ACK 集群"]
     end
 
-    subgraph 可观测性监控 ["4. 监控与度量大盘"]
-        ACK -->|上报 Pod 状态| KSM["kube-state-metrics"]
-        ACK -->|物理耗用| NODE["cAdvisor / Node-Exporter"]
-        KSM --> PROM["Prometheus 时序数据库"]
+    subgraph D ["4. 监控与度量"]
+        ACK -->|Pod 状态| KSM["kube-state-metrics"]
+        ACK -->|资源消耗| NODE["cAdvisor"]
+        KSM --> PROM["Prometheus"]
         NODE --> PROM
-        PROM -->|数据渲染| GRAFANA["Grafana 实时监控大盘"]
+        PROM -->|可视化| GRAFANA["Grafana"]
     end
+
+    A --> B --> C --> D
 ```
 
 ---

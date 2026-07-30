@@ -10,9 +10,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- LXGW WenKai Font for Chinese article text -->
+    <link rel="stylesheet" href="https://fontsapi.zeoseven.com/292/main/result.css">
+    
     <!-- Render theme styling -->
     {{- $style := resources.Get "css/main.scss" | toCSS | minify | fingerprint -}}
     <link rel="stylesheet" href="{{ $style.RelPermalink }}">
+    
+    <style>
+      .article-content, .markdown-body {
+        font-family: 'LXGW WenKai', 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      }
+    </style>
     
     <!-- Blocking script to prevent flash of wrong theme -->
     <script>
