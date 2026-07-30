@@ -8,7 +8,7 @@ tags: ["Kubernetes", "GitOps", "GitLab CI", "Argo CD", "Prometheus", "Grafana", 
 categories: ["Projects", "Cloud Native"]
 ---
 
-# 🚀 阿里云 ACK + ACR 企业级 GitOps CI/CD 与全栈可观测性工程落地
+# 阿里云 ACK + ACR 企业级 GitOps CI/CD 与全栈可观测性工程落地
 
 在云原生微服务架构下，随着服务数量的增长，如何保障多语言微服务构建的快速迭代、自动化代码质量校验、透明安全的 GitOps 交付以及全方位的集群与业务指标监控，是企业级 DevOps & SRE 团队的核心挑战。
 
@@ -16,7 +16,7 @@ categories: ["Projects", "Cloud Native"]
 
 ---
 
-## 🏗️ 整体架构设计
+## 整体架构设计
 
 ### 1. 系统模块与数据流拓扑图 (AI 辅助生成)
 
@@ -33,23 +33,23 @@ categories: ["Projects", "Cloud Native"]
 
 ```mermaid
 flowchart LR
-    subgraph 开发者与源码 ["💻 1. 代码提交"]
+    subgraph 开发者与源码 ["1. 代码提交"]
         DEV["开发者 Push"] -->|触发 Webhook| GITLAB["GitLab CI/CD"]
     end
 
-    subgraph CI构建矩阵 ["⚡ 2. 自动化构建与测试"]
+    subgraph CI构建矩阵 ["2. 自动化构建与测试"]
         GITLAB -->|动态Child Pipeline| BUILD["11个微服务并行构建 (Go/Java/Node)"]
         BUILD -->|打包镜像| ACR["阿里云 ACR 容器镜像服务"]
         BUILD -->|安全扫描| TRIVY["Trivy / SBOM 检查"]
         ACR -->|更新 Tag| GITOPS_REPO["GitOps 配置仓库 (values-aliyun.yaml)"]
     end
 
-    subgraph GitOps交付 ["🚀 3. 声明式部署"]
+    subgraph GitOps交付 ["3. 声明式部署"]
         GITOPS_REPO -->|监听 Manifest| ARGOCD["Argo CD 控制器"]
         ARGOCD -->|自动同步与止损| ACK["阿里云 ACK 集群"]
     end
 
-    subgraph 可观测性监控 ["📊 4. 监控与度量大盘"]
+    subgraph 可观测性监控 ["4. 监控与度量大盘"]
         ACK -->|上报 Pod 状态| KSM["kube-state-metrics"]
         ACK -->|物理耗用| NODE["cAdvisor / Node-Exporter"]
         KSM --> PROM["Prometheus 时序数据库"]
@@ -60,7 +60,7 @@ flowchart LR
 
 ---
 
-## 🌟 核心功能与控制台实操展示
+## 核心功能与控制台实操展示
 
 ### 1. GitLab CI/CD 100% 全绿流水线
 
@@ -105,7 +105,7 @@ flowchart LR
 
 ---
 
-## 🔧 常见踩坑与技术攻坚总结
+## 常见踩坑与技术攻坚总结
 
 1. **GitOps 清单并发推送被拒 (`non-fast-forward push rejection`)**：
    - **解法**：在 CI 脚本中配置强制 Rebase 策略及安全 Token 身份校验，确保矩阵并发阶段的 Manifest 更新零冲突。
@@ -116,7 +116,7 @@ flowchart LR
 
 ---
 
-## 🔗 相关项目与链接
+## 相关项目与链接
 
 - **GitHub 代码仓库**：[https://github.com/user27c/aliyun-k8s-cicd-lab](https://github.com/user27c/aliyun-k8s-cicd-lab)
 - **上游部署应用**：[GoogleCloudPlatform/microservices-demo (Online Boutique)](https://github.com/GoogleCloudPlatform/microservices-demo) —— Google Cloud 官方开源的 11 微服务云原生电商演示应用，本项目的核心部署负载
