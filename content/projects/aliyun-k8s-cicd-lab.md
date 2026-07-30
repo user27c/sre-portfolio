@@ -78,6 +78,6 @@ categories: ["Projects", "Cloud Native"]
 
 ## 🔗 相关项目与链接
 
-- **GitHub 代码仓库**：[https://github.com/your-user/aliyun-k8s-cicd-lab](https://github.com/your-user/aliyun-k8s-cicd-lab)
+- **GitHub 代码仓库**：[https://github.com/user27c/aliyun-k8s-cicd-lab](https://github.com/user27c/aliyun-k8s-cicd-lab)
 - **Argo CD 实时交付控制台**：`http://47.108.52.39/`
 - **Grafana 可观测性大盘**：`http://47.108.13.222/`
