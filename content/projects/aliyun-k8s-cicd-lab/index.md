@@ -2,6 +2,7 @@
 title: "阿里云 ACK + ACR 企业级 GitOps CI/CD 自动化流水线与全栈可观测性实战"
 date: 2026-07-30
 draft: false
+mermaid: true
 description: "基于阿里云 ACK 托管 Kubernetes 集群、ACR 镜像服务、GitLab CI/CD、Argo CD 渐进式交付与 Prometheus/Grafana 可观测性全栈自动化构建落地实战。"
 tags: ["Kubernetes", "GitOps", "GitLab CI", "Argo CD", "Prometheus", "Grafana", "Aliyun"]
 categories: ["Projects", "Cloud Native"]
@@ -11,7 +12,7 @@ categories: ["Projects", "Cloud Native"]
 
 在云原生微服务架构下，随着服务数量的增长，如何保障多语言微服务构建的快速迭代、自动化代码质量校验、透明安全的 GitOps 交付以及全方位的集群与业务指标监控，是企业级 DevOps & SRE 团队的核心挑战。
 
-本项目（**Aliyun K8s CI/CD & Observability Lab**）以经典的谷歌 Google Online Boutique 多语言微服务架构（包含 Go、Node.js、Python、Java、.NET 等 11 个微服务）为基准，基于 **阿里云 ACK 托管 Kubernetes 集群** 与 **ACR 镜像服务**，构建了一套生产级的自动化 CI/CD 与云原生可观测性解决方案。
+本项目（**Aliyun K8s CI/CD & Observability Lab**）部署的核心业务负载是 Google Cloud 官方开源的 **[Online Boutique (microservices-demo)](https://github.com/GoogleCloudPlatform/microservices-demo)** —— 一套由 11 个多语言微服务（Go、Node.js、Python、Java、C#、.NET）组成的云原生电商平台演示应用。本项目以此为基准工作负载，基于 **阿里云 ACK 托管 Kubernetes 集群** 与 **ACR 镜像服务**，构建了一套完整的生产级自动化 CI/CD 与云原生可观测性解决方案。
 
 ---
 
@@ -118,3 +119,11 @@ flowchart LR
 ## 🔗 相关项目与链接
 
 - **GitHub 代码仓库**：[https://github.com/user27c/aliyun-k8s-cicd-lab](https://github.com/user27c/aliyun-k8s-cicd-lab)
+- **上游部署应用**：[GoogleCloudPlatform/microservices-demo (Online Boutique)](https://github.com/GoogleCloudPlatform/microservices-demo) —— Google Cloud 官方开源的 11 微服务云原生电商演示应用，本项目的核心部署负载
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, theme: 'default' });
+  mermaid.run({ querySelector: '.language-mermaid, .mermaid' });
+</script>
+
