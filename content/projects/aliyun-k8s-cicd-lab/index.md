@@ -1,5 +1,5 @@
 ---
-title: "阿里云 ACK + ACR 企业级 GitOps CI/CD 自动化流水线与可观测性实战"
+title: "阿里云 ACK + ACR 企业级 GitOps CI/CD 自动化流水线与全栈可观测性实战"
 date: 2026-07-30
 draft: false
 description: "基于阿里云 ACK 托管 Kubernetes 集群、ACR 镜像服务、GitLab CI/CD、Argo CD 渐进式交付与 Prometheus/Grafana 可观测性全栈自动化构建落地实战。"
@@ -17,55 +17,90 @@ categories: ["Projects", "Cloud Native"]
 
 ## 🏗️ 整体架构设计
 
-为便于直观理解本项目的端到端全貌，以下包含由 AI 辅助生成的系统整体架构拓扑图与 3D 逻辑全景图：
-
 ### 1. 系统模块与数据流拓扑图 (AI 辅助生成)
+
+下图展示了基于阿里云 ACK 搭建的云原生 CI/CD 交付与可观测性全脉络：
+
 ![基于阿里云 ACK 的 GitOps CI/CD 与全栈监控系统架构](ai-architecture-system.jpg)
-*注：上图清晰展示了源码与 CI 构建矩阵（区域一）、GitOps 声明式交付（区域二）、ACK Kubernetes 微服务 Pods 拓扑（区域三）以及 Prometheus/Grafana 全栈可观测性体系（区域四）。*
-
-### 2. 3D 云原生工程视效概览图 (AI 辅助生成)
-![Alibaba Cloud ACK GitOps & Observability 3D Architecture](ai-architecture-3d.jpg)
-*注：3D 视图展现了从开发者工作流到集群自动化控制、可观测性数据管道的整体运行范式。*
+*注：上图清晰划分为四大核心板块：源码与 CI 构建矩阵（区域一）、GitOps 声明式交付（区域二）、ACK Kubernetes 微服务 Pods 拓扑（区域三）以及 Prometheus/Grafana 全栈可观测性体系（区域四）。*
 
 ---
 
-## 🌟 核心功能与亮点展示
+### 2. 端到端 GitOps 交付与数据流转 Markdown 示意图
 
-### 1. GitLab 动态构建矩阵与 100% 自动化流水线
+为进一步厘清系统内部组件间的通信路径，以下使用 Markdown Mermaid 渲染了完整的数据流与逻辑流：
 
-- **自适应 Go Toolchain 与缓存**：解决了不同 Go 微服务对构建链要求的差异，并集成 Docker/Podman Socket 与层级缓存，大幅提升二次构建速度。
-- **GitOps 清单自动推送到远端**：流水线完成后通过服务账号令牌安全的将最新 Image SHA 写入 Helm Values 配置文件，实现端到端的持续交付。
+```mermaid
+flowchart LR
+    subgraph 开发者与源码 ["💻 1. 代码提交"]
+        DEV["开发者 Push"] -->|触发 Webhook| GITLAB["GitLab CI/CD"]
+    end
 
-![GitLab 100% 成功流水线](01-gitlab-pipeline-success.png)
-*图 1：GitLab CI/CD Pipeline 端到端全线 Green 成功运行*
+    subgraph CI构建矩阵 ["⚡ 2. 自动化构建与测试"]
+        GITLAB -->|动态Child Pipeline| BUILD["11个微服务并行构建 (Go/Java/Node)"]
+        BUILD -->|打包镜像| ACR["阿里云 ACR 容器镜像服务"]
+        BUILD -->|安全扫描| TRIVY["Trivy / SBOM 检查"]
+        ACR -->|更新 Tag| GITOPS_REPO["GitOps 配置仓库 (values-aliyun.yaml)"]
+    end
+
+    subgraph GitOps交付 ["🚀 3. 声明式部署"]
+        GITOPS_REPO -->|监听 Manifest| ARGOCD["Argo CD 控制器"]
+        ARGOCD -->|自动同步与止损| ACK["阿里云 ACK 集群"]
+    end
+
+    subgraph 可观测性监控 ["📊 4. 监控与度量大盘"]
+        ACK -->|上报 Pod 状态| KSM["kube-state-metrics"]
+        ACK -->|物理耗用| NODE["cAdvisor / Node-Exporter"]
+        KSM --> PROM["Prometheus 时序数据库"]
+        NODE --> PROM
+        PROM -->|数据渲染| GRAFANA["Grafana 实时监控大盘"]
+    end
+```
 
 ---
 
-### 2. Argo CD 声明式 GitOps 持续部署
+## 🌟 核心功能与控制台实操展示
 
-- **环境一致性保护**：集群通过 Argo CD 监听云端仓库的 Manifest 变更，自动将最新部署同步至 ACK 集群中，彻底摆脱人工手动运行 `kubectl` 命令的安全隐患。
-- **自动收敛与自愈**：当集群出现非预期飘移时，Argo CD 会秒级自动纠正并同步远端期望状态。
+### 1. GitLab CI/CD 100% 全绿流水线
 
-![Argo CD 应用拓扑与发布状态](04-argocd-applications.png)
-*图 2：Argo CD 控制台呈现完整的 Online Boutique 声明式应用拓扑与健康同步状态*
+在 GitLab CI 中实现了基于服务变更路径感知的动态 Child Pipeline，仅针对被修改的服务进行精准构建与单元测试，构建成功后将最新 Commit SHA 镜像 Tag 安全推送到阿里云 ACR 并回写 GitOps 清单。
+
+![GitLab 流水线历史历史](01-gitlab-pipeline-history.png)
+*图 1：GitLab 流水线面板呈现近期所有的提交（如 #37、#35、#33、#31 等）均达到 100% 绿色通过状态。*
 
 ---
 
-### 3. 全栈云原生监控与可视化面板 (Grafana + Prometheus)
+### 2. 在线精品电商微服务应用 (Online Boutique)
 
-在 ACK 集群中部署 `kube-prometheus-stack` 监控套件，并通过负载均衡（SLB）对外暴露 Grafana 控制台。
+微服务应用包含 11 个跨多语言的微服务（包含 Frontend、CartService、OrderService 等），通过负载均衡对外暴露服务入口。
+
+![Online Boutique 业务商城页面](02-online-boutique-frontend.png)
+*图 2：部署于 ACK 集群上的在线精品电商 (Online Boutique) 业务前端渲染界面。*
+
+---
+
+### 3. Argo CD 声明式 GitOps 持续部署与健康拓扑
+
+通过 Argo CD 控制器实时追踪 GitOps 仓库的配置，当检测到最新镜像 Tag 变更时自动按声明式 API 将部署同步至 ACK 集群中，并自动维护拓扑状态。
+
+![Argo CD 健康同步树状拓扑](03-argocd-topology-healthy.png)
+*图 3：Argo CD 控制台呈现 `online-boutique` 应用处于 Healthy 与 Synced 稳定状态，右侧展开各微服务 Deployment、ReplicaSet 与 Pod 的健康拓扑树。*
+
+---
+
+### 4. 全栈云原生监控与可视化面板 (Grafana + Prometheus)
 
 #### A. 阿里云 ACK 节点与物理资源大盘 (Cluster & Node Overview)
-- 实时追踪集群核心节点的 CPU/内存耗用、Pod 分布密度以及网络 Node-level Bps 进出吞吐。
+- 实时监控 ACK 物理节点总数 (6)、集群运行中 Pod 总数 (123)、CPU 核心使用量平滑曲线、内存消耗以及 Node Network I/O 实时吞吐。
 
-![Grafana 集群与节点物理监控大盘](02-grafana-cluster-dashboard.png)
-*图 3：Grafana 节点物理资源与负载大盘*
+![Grafana 集群与节点物理监控大盘](04-grafana-cluster-nodes.png)
+*图 4：Grafana 集群节点物理资源与网络流量监控大盘。*
 
 #### B. Kubernetes Pods & 核心微服务细粒度大盘
-- 集成 `kube-state-metrics` 与 cAdvisor 容器层指标，清晰直观地监控各微服务 Pod 的内存 WorkingSet 消耗排行榜、CPU Rate Top 10 以及容器生命周期状态。
+- 依托 `kube-state-metrics` 与 cAdvisor，实时展现 Pod CPU 消耗 Top 10、Pod 内存占用排行榜、Pod 运行状态分布饼图（100% Running 绿色无故障）以及容器重启频次追踪。
 
-![Grafana Pods 细粒度微服务监控大盘](03-grafana-pod-dashboard.png)
-*图 4：Grafana Pods 细粒度微服务消耗与状态大盘*
+![Grafana Pod 容器组监控大盘](05-grafana-pod-metrics.png)
+*图 5：Grafana Kubernetes Pod 容器组细粒度消耗与状态大盘。*
 
 ---
 
