@@ -1,18 +1,18 @@
 ---
-title: "阿里云 ACK + ACR 企业级 GitOps CI/CD 自动化流水线与全栈可观测性实战"
+title: "阿里云 ACK + ACR 云原生 GitOps CI/CD 自动化交付与可观测性工程实验平台"
 date: 2026-07-30
 draft: false
 mermaid: true
-description: "基于阿里云 ACK 托管 Kubernetes 集群、ACR 镜像服务、GitLab CI/CD、Argo CD 渐进式交付与 Prometheus/Grafana 可观测性全栈自动化构建落地实战。"
+description: "面向生产实践的云原生交付实验平台：基于阿里云 ACK、ACR、GitLab CI/CD、Argo CD 声明式交付与 Prometheus/Grafana 可观测性全栈工程落地。"
 tags: ["Kubernetes", "GitOps", "GitLab CI", "Argo CD", "Prometheus", "Grafana", "Aliyun"]
 categories: ["Projects", "Cloud Native"]
 ---
 
-# 阿里云 ACK + ACR 企业级 GitOps CI/CD 与全栈可观测性工程落地
+# 阿里云 ACK + ACR 云原生 GitOps CI/CD 与全栈可观测性工程实验平台
 
 在云原生微服务架构下，随着服务数量的增长，如何保障多语言微服务构建的快速迭代、自动化代码质量校验、透明安全的 GitOps 交付以及全方位的集群与业务指标监控，是企业级 DevOps & SRE 团队的核心挑战。
 
-本项目（**Aliyun K8s CI/CD & Observability Lab**）部署的核心业务负载是 Google Cloud 官方开源的 **[Online Boutique (microservices-demo)](https://github.com/GoogleCloudPlatform/microservices-demo)** —— 一套由 11 个多语言微服务（Go、Node.js、Python、Java、C#、.NET）组成的云原生电商平台演示应用。本项目以此为基准工作负载，基于 **阿里云 ACK 托管 Kubernetes 集群** 与 **ACR 镜像服务**，构建了一套完整的生产级自动化 CI/CD 与云原生可观测性解决方案。
+本项目（**Aliyun K8s CI/CD & Observability Lab**）定位为**面向生产实践的云原生交付与可观测性工程实验平台**。部署的核心业务负载是 Google Cloud 官方开源的 **[Online Boutique (microservices-demo)](https://github.com/GoogleCloudPlatform/microservices-demo)** —— 一套由 11 个多语言微服务（Go、Node.js、Python、Java、C#、.NET）组成的云原生电商平台演示应用。本项目以此为基准工作负载，基于 **阿里云 ACK 托管 Kubernetes 集群** 与 **ACR 镜像服务**，构建了一套完备的自动化 CI/CD 与云原生可观测性实验方案。
 
 ---
 
@@ -109,8 +109,8 @@ flowchart TD
 
 ## 常见踩坑与技术攻坚总结
 
-1. **GitOps 清单并发推送被拒 (`non-fast-forward push rejection`)**：
-   - **解法**：在 CI 脚本中配置强制 Rebase 策略及安全 Token 身份校验，确保矩阵并发阶段的 Manifest 更新零冲突。
+1. **GitOps 清单并发推送被拒与安全凭据管理 (`non-fast-forward push rejection`)**：
+   - **解法**：摒弃存在覆盖风险的 `git push --force` 强推，在 CI 脚本中配置带重试功能的 `git fetch` + `git rebase` 环路机制；凭据完全托管在 GitLab CI/CD Variable 中（Masked & Protected），杜绝硬编码泄漏。
 2. **Kube-State-Metrics 指标缺失与面板 No Data 修复**：
    - **解法**：部署兼容国内镜像源的 `kube-state-metrics` 实例，并为其注入 `release: kube-prometheus-stack` 的全局 `ServiceMonitor` 关联，打通 Pod 状态流。
 3. **Prometheus PV 拓扑等待锁 (WaitForFirstConsumer)**：
