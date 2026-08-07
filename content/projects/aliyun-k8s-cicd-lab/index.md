@@ -3,16 +3,16 @@ title: "阿里云 ACK + ACR 云原生 GitOps CI/CD 自动化交付与可观测�
 date: 2026-07-30
 draft: false
 mermaid: true
-description: "面向生产实践的云原生交付实验平台：基于阿里云 ACK、ACR、GitLab CI/CD、Argo CD 声明式交付与 Prometheus/Grafana 可观测性全栈工程落地。"
+description: "基于阿里云 ACK、ACR、GitLab CI/CD、Argo CD 与 Prometheus/Grafana 的云原生交付和可观测性实验。"
 tags: ["Kubernetes", "GitOps", "GitLab CI", "Argo CD", "Prometheus", "Grafana", "Aliyun"]
 categories: ["Projects", "Cloud Native"]
+build:
+  publishResources: false
 ---
-
-# 阿里云 ACK + ACR 云原生 GitOps CI/CD 与全栈可观测性工程实验平台
 
 在云原生微服务架构下，随着服务数量的增长，如何保障多语言微服务构建的快速迭代、自动化代码质量校验、透明安全的 GitOps 交付以及全方位的集群与业务指标监控，是企业级 DevOps & SRE 团队的核心挑战。
 
-本项目（**Aliyun K8s CI/CD & Observability Lab**）定位为**面向生产实践的云原生交付与可观测性工程实验平台**。部署的核心业务负载是 Google Cloud 官方开源的 **[Online Boutique (microservices-demo)](https://github.com/GoogleCloudPlatform/microservices-demo)** —— 一套由 11 个多语言微服务（Go、Node.js、Python、Java、C#、.NET）组成的云原生电商平台演示应用。本项目以此为基准工作负载，基于 **阿里云 ACK 托管 Kubernetes 集群** 与 **ACR 镜像服务**，构建了一套完备的自动化 CI/CD 与云原生可观测性实验方案。
+本项目（**Aliyun K8s CI/CD & Observability Lab**）定位为云原生交付与可观测性实验平台。部署的核心业务负载是 Google Cloud 官方开源的 **[Online Boutique (microservices-demo)](https://github.com/GoogleCloudPlatform/microservices-demo)** —— 一套由 11 个多语言微服务组成的演示应用。本项目以此为基准工作负载，在 **阿里云 ACK 托管 Kubernetes 集群** 与 **ACR 镜像服务**上验证 CI/CD、GitOps 和监控链路。
 
 ---
 
@@ -64,12 +64,12 @@ flowchart TD
 
 ## 核心功能与控制台实操展示
 
-### 1. GitLab CI/CD 100% 全绿流水线
+### 1. GitLab CI/CD 流水线运行记录
 
 在 GitLab CI 中实现了基于服务变更路径感知的动态 Child Pipeline，仅针对被修改的服务进行精准构建与单元测试，构建成功后将最新 Commit SHA 镜像 Tag 安全推送到阿里云 ACR 并回写 GitOps 清单。
 
 ![GitLab 流水线历史历史](01-gitlab-pipeline-history.png)
-*图 1：GitLab 流水线面板呈现近期所有的提交（如 #37、#35、#33、#31 等）均达到 100% 绿色通过状态。*
+*图 1：截图记录了当时选定提交的流水线通过状态；它是一次运行证据，不代表长期成功率。*
 
 ---
 
@@ -100,7 +100,7 @@ flowchart TD
 *图 4：Grafana 集群节点物理资源与网络流量监控大盘。*
 
 #### B. Kubernetes Pods & 核心微服务细粒度大盘
-- 依托 `kube-state-metrics` 与 cAdvisor，实时展现 Pod CPU 消耗 Top 10、Pod 内存占用排行榜、Pod 运行状态分布饼图（100% Running 绿色无故障）以及容器重启频次追踪。
+- 依托 `kube-state-metrics` 与 cAdvisor，展现 Pod CPU 消耗 Top 10、Pod 内存占用、采样时刻的 Pod 状态分布以及容器重启频次。
 
 ![Grafana Pod 容器组监控大盘](05-grafana-pod-metrics.png)
 *图 5：Grafana Kubernetes Pod 容器组细粒度消耗与状态大盘。*
@@ -114,7 +114,7 @@ flowchart TD
 2. **Kube-State-Metrics 指标缺失与面板 No Data 修复**：
    - **解法**：部署兼容国内镜像源的 `kube-state-metrics` 实例，并为其注入 `release: kube-prometheus-stack` 的全局 `ServiceMonitor` 关联，打通 Pod 状态流。
 3. **Prometheus PV 拓扑等待锁 (WaitForFirstConsumer)**：
-   - **解法**：在 ACK 轻量级环境中将 Prometheus TSDB 存储模式切换为轻量高可用的 `emptyDir` 内存/本地模式，实现 StatefulSet 毫秒级恢复启动。
+   - **实验取舍**：在 ACK 轻量环境中将 Prometheus TSDB 临时切换为 `emptyDir`，绕过存储绑定问题并加快启动。该方案在 Pod 重建时会丢失历史数据，不属于高可用或生产持久化方案。
 
 ---
 
@@ -122,14 +122,3 @@ flowchart TD
 
 - **GitHub 代码仓库**：[https://github.com/user27c/aliyun-k8s-cicd-lab](https://github.com/user27c/aliyun-k8s-cicd-lab)
 - **上游部署应用**：[GoogleCloudPlatform/microservices-demo (Online Boutique)](https://github.com/GoogleCloudPlatform/microservices-demo) —— Google Cloud 官方开源的 11 微服务云原生电商演示应用，本项目的核心部署负载
-
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    if (window.mermaid) {
-      mermaid.initialize({ startOnLoad: false, theme: 'default' });
-      mermaid.run({ querySelector: 'pre.mermaid' });
-    }
-  });
-</script>
-

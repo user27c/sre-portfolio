@@ -1,0 +1,22 @@
+<div class="widget-wrap glass-card taxonomies-widget">
+  <h2 class="widget-title">Categories</h2>
+  <div class="widget-categories-list">
+    {{ range $name, $taxonomy := .Site.Taxonomies.categories }}
+      <a href="{{ "categories/" | relURL }}{{ $name | urlize }}" class="widget-category-item">
+        <span class="category-name">{{ $name }}</span>
+        <span class="category-count">{{ len $taxonomy.Pages }}</span>
+      </a>
+    {{ else }}
+      <span class="empty-message">暂无分类</span>
+    {{ end }}
+  </div>
+
+  <h2 class="widget-title widget-title--tags">Tags</h2>
+  <div class="widget-tags-cloud">
+    {{ range $name, $taxonomy := .Site.Taxonomies.tags }}
+      <a href="{{ "tags/" | relURL }}{{ $name | urlize }}" class="post-tag-chip">#{{ $name }}</a>
+    {{ else }}
+      <span class="empty-message">暂无标签</span>
+    {{ end }}
+  </div>
+</div>

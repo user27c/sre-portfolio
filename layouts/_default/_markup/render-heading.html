@@ -1,0 +1,4 @@
+<h{{ .Level }} id="{{ .Anchor | safeURL }}">
+  <a class="header-anchor" href="#{{ .Anchor | safeURL }}" aria-label="链接到本节"></a>
+  {{ .Text | safeHTML }}
+</h{{ .Level }}>

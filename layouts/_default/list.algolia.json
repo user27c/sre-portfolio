@@ -1,0 +1,13 @@
+{{- $posts := where .Site.RegularPages "Type" "post" -}}
+[
+  {{- range $index, $post := $posts.ByDate.Reverse -}}
+  {{- if $index }},{{ end }}
+  {
+    "objectID": {{ sha1 .RelPermalink | jsonify }},
+    "permalink": {{ .RelPermalink | jsonify }},
+    "title": {{ .Title | jsonify }},
+    "content": {{ .Plain | truncate 2000 | jsonify }},
+    "date": {{ .Date.Format "2006-01-02" | jsonify }}
+  }
+  {{- end }}
+]

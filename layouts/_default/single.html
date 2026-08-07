@@ -1,15 +1,15 @@
 {{ define "main" }}
 <article class="post-article">
   <header class="article-header">
-    <time class="article-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "January 02, 2006" }}</time>
+    <time class="article-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
     <h1 class="article-title">{{ .Title }}</h1>
     
     <div class="article-meta">
-      <span class="reading-time">Reading time: {{ .ReadingTime }} min</span>
+      <span class="reading-time">阅读约 {{ .ReadingTime }} 分钟</span>
       {{ if .Params.categories }}
         <span class="meta-separator">&bull;</span>
         <span class="article-categories">
-          Category: 
+          分类：
           {{ range .Params.categories }}
             <a href="{{ "categories/" | relURL }}{{ . | urlize }}" class="meta-category">{{ . }}</a>
           {{ end }}
@@ -33,50 +33,28 @@
   {{ end }}
 </article>
 
-<!-- Custom Code Block Copy Utility Script -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const codeBlocks = document.querySelectorAll("pre");
-    codeBlocks.forEach(block => {
-      block.style.position = "relative";
-      
-      const button = document.createElement("button");
-      button.className = "copy-code-btn";
-      button.type = "button";
-      button.innerText = "Copy";
-      block.appendChild(button);
-
-      button.addEventListener("click", () => {
-        const codeElement = block.querySelector("code");
-        let text = codeElement ? codeElement.innerText : block.innerText;
-        if (text.endsWith("Copy")) {
-          text = text.slice(0, -4);
-        }
-        
-        navigator.clipboard.writeText(text).then(() => {
-          button.innerText = "Copied!";
-          button.classList.add("copied");
-          setTimeout(() => {
-            button.innerText = "Copy";
-            button.classList.remove("copied");
-          }, 2000);
-        }).catch(err => {
-          console.error("Failed to copy code: ", err);
-        });
-      });
-    });
-  });
-</script>
+<nav class="article-pager" aria-label="文章导航">
+  {{ with .PrevInSection }}
+    <a class="article-pager-link article-pager-link--prev" href="{{ .RelPermalink }}">
+      <span class="article-pager-label">上一篇</span>
+      <span>{{ .Title }}</span>
+    </a>
+  {{ end }}
+  {{ with .NextInSection }}
+    <a class="article-pager-link article-pager-link--next" href="{{ .RelPermalink }}">
+      <span class="article-pager-label">下一篇</span>
+      <span>{{ .Title }}</span>
+    </a>
+  {{ end }}
+</nav>
 {{ end }}
 
 {{ define "sidebar" }}
-<!-- 1. Reusable Developer Profile Widget -->
-{{ partial "profile_card.html" . }}
+{{ partial "search_button.html" . }}
 
-<!-- 2. Sticky Table of Contents Widget -->
 {{ if .TableOfContents }}
 <div class="widget-wrap glass-card toc-widget-sticky">
-  <h4 class="widget-title">On This Page</h4>
+  <h2 class="widget-title">本页目录</h2>
   <div class="toc-content">
     {{ .TableOfContents }}
   </div>

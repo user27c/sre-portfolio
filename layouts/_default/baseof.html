@@ -2,8 +2,38 @@
 <html lang="{{ .Site.Language.Locale | default "zh-CN" }}">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{- $description := .Description | default .Summary | default .Site.Params.description | plainify | htmlUnescape | strings.TrimSpace | truncate 180 -}}
+    {{- $pageTitle := cond .IsHome .Site.Title (printf "%s · %s" .Title .Site.Title) -}}
+    <title>{{ $pageTitle }}</title>
+    <meta name="description" content="{{ $description }}">
+    <meta name="theme-color" content="#07111f" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#e4eaf2" media="(prefers-color-scheme: light)">
+    <link rel="canonical" href="{{ .Permalink }}">
+    <link rel="icon" type="image/webp" href="{{ "avatar/avatar.webp" | absURL }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }}" href="{{ "index.xml" | absURL }}">
+    {{- if eq .Kind "404" }}
+    <meta name="robots" content="noindex, follow">
+    {{- end }}
+
+    <meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+    <meta property="og:site_name" content="{{ .Site.Title }}">
+    <meta property="og:title" content="{{ $pageTitle }}">
+    <meta property="og:description" content="{{ $description }}">
+    <meta property="og:url" content="{{ .Permalink }}">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:image" content="{{ "avatar/avatar.webp" | absURL }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ $pageTitle }}">
+    <meta name="twitter:description" content="{{ $description }}">
+    <meta name="twitter:image" content="{{ "avatar/avatar.webp" | absURL }}">
+    {{- if .IsPage }}
+      {{- with .Date }}<meta property="article:published_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
+      {{- with .Lastmod }}<meta property="article:modified_time" content="{{ .Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
+    {{- end }}
+    {{- $schema := dict "@context" "https://schema.org" "@type" (cond .IsPage "BlogPosting" "WebSite") "name" $pageTitle "headline" $pageTitle "description" $description "url" .Permalink -}}
+    {{- if .IsPage }}{{ $schema = merge $schema (dict "datePublished" (.Date.Format "2006-01-02T15:04:05Z07:00") "dateModified" (.Lastmod.Format "2006-01-02T15:04:05Z07:00") "author" (dict "@type" "Person" "name" (.Site.Params.author | default "22/7"))) }}{{ end }}
+    <script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
     
     <!-- Google Font Import -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,6 +75,7 @@
     </script>
   </head>
   <body>
+    <a class="skip-link" href="#main-content">跳到正文</a>
     <!-- Background Canvas Particles -->
     <canvas id="tech-particles"></canvas>
     
@@ -76,16 +107,21 @@
           <span class="logo-cursor">_</span>
         </a>
         
-        <nav class="site-nav">
-          <a href="{{ "" | relLangURL }}" class="nav-link">Home</a>
-          <a href="{{ "archives" | relLangURL }}" class="nav-link">Posts</a>
-          <a href="{{ "projects" | relLangURL }}" class="nav-link">Projects</a>
-          <a href="{{ "about" | relLangURL }}" class="nav-link">About</a>
+        <nav class="site-nav" aria-label="主导航">
+          <a href="{{ "" | relLangURL }}" class="nav-link{{ if .IsHome }} is-active{{ end }}"{{ if .IsHome }} aria-current="page"{{ end }}>Home</a>
+          <a href="{{ "archives" | relLangURL }}" class="nav-link{{ if eq .Type "archives" }} is-active{{ end }}"{{ if eq .Type "archives" }} aria-current="page"{{ end }}>Posts</a>
+          <a href="{{ "projects" | relLangURL }}" class="nav-link{{ if eq .Section "projects" }} is-active{{ end }}"{{ if eq .Section "projects" }} aria-current="page"{{ end }}>Projects</a>
+          <a href="{{ "about" | relLangURL }}" class="nav-link{{ if and .File (eq .File.ContentBaseName "about") }} is-active{{ end }}"{{ if and .File (eq .File.ContentBaseName "about") }} aria-current="page"{{ end }}>About</a>
+          {{- if .Site.Params.local_search.enable }}
+          <button type="button" class="nav-action-btn popup-trigger" aria-label="搜索文章" aria-haspopup="dialog" aria-controls="site-search">
+            <span aria-hidden="true">⌕</span>
+          </button>
+          {{- end }}
           
           <!-- Minimalist Mode Toggler -->
-          <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle Theme">
-            <span class="toggle-icon-light">☼</span>
-            <span class="toggle-icon-dark">☾</span>
+          <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="切换到深色主题" aria-pressed="false">
+            <span class="toggle-icon-light" aria-hidden="true">☼</span>
+            <span class="toggle-icon-dark" aria-hidden="true">☾</span>
           </button>
         </nav>
       </div>
@@ -95,7 +131,7 @@
     <div class="site-wrapper">
       <!-- Two Column Sidebar Grid -->
       <div class="site-grid">
-        <main class="site-main">
+        <main id="main-content" class="site-main" tabindex="-1">
           {{ block "main" . }}{{ end }}
         </main>
         
@@ -113,64 +149,45 @@
     
     <!-- Local JSON Search Overlay (Styled as Glassmorphism Modal) -->
     {{- if .Site.Params.local_search.enable -}}
-      <div class="site-search">
-        <div class="reimu-popup popup glass-card">
+      <div id="site-search" class="site-search" data-index-url="{{ "algolia.json" | relURL }}" aria-hidden="true">
+        <div class="reimu-popup popup glass-card" role="dialog" aria-modal="true" aria-labelledby="search-dialog-title" tabindex="-1">
+          <h2 id="search-dialog-title" class="sr-only">搜索文章</h2>
           <div class="reimu-search">
-            <div class="reimu-search-input-icon">🔍</div>
+            <span class="reimu-search-input-icon" aria-hidden="true">🔍</span>
             <div id="reimu-search-input">
-              <input type="text" id="local-search-input" placeholder="Search posts..." autocomplete="off" autofocus>
+              <label class="sr-only" for="local-search-input">搜索文章</label>
+              <input type="search" id="local-search-input" placeholder="输入标题或正文关键词…" autocomplete="off">
             </div>
-            <div class="popup-btn-close">&times;</div>
+            <button type="button" class="popup-btn-close" aria-label="关闭搜索">&times;</button>
           </div>
           <div class="reimu-results">
-            <div id="reimu-stats"></div>
-            <div id="reimu-hits"></div>
+            <div id="reimu-stats" role="status" aria-live="polite"></div>
+            <div id="reimu-hits" aria-live="polite"></div>
           </div>
         </div>
       </div>
-      <div id="mask" class="hide"></div>
-      
-      <script>window.__SEARCH_INDEX_URL = '{{ "algolia.json" | relURL }}';</script>
+      <div id="mask" class="hide" aria-hidden="true"></div>
+
       {{ $localSearchJs := resources.Get "js/local-search.js" }}
       {{ if $localSearchJs }}
-        <script src="{{ $localSearchJs.RelPermalink }}" defer></script>
+        {{ $localSearchJsSecure := $localSearchJs | resources.Minify | resources.Fingerprint }}
+        <script src="{{ $localSearchJsSecure.RelPermalink }}" defer></script>
       {{ end }}
     {{- end -}}
-    
-    <!-- Core logic for mode toggle and backdrop click closing -->
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const toggleBtn = document.getElementById("theme-toggle");
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", () => {
-            const isDark = document.documentElement.classList.toggle("dark");
-            localStorage.setItem("theme", isDark ? "dark" : "light");
-          });
-        }
-        
-        // Close search popup when clicking the backdrop mask
-        const mask = document.getElementById("mask");
-        if (mask) {
-          mask.addEventListener("click", () => {
-            const popup = document.querySelector(".site-search .reimu-popup.popup");
-            if (popup && popup.__closePopup) {
-              popup.__closePopup();
-            }
-          });
-        }
-        
-        window.addEventListener("keydown", (e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-            e.preventDefault();
-            if (typeof window.openLocalSearch === "function") {
-              window.openLocalSearch();
-            } else {
-              document.querySelector(".popup-trigger")?.click();
-            }
-          }
-        });
-      });
-    </script>
+
+    {{- $siteJs := resources.Get "js/site.js" | resources.Minify | resources.Fingerprint -}}
+    <script src="{{ $siteJs.RelPermalink }}" defer></script>
+
+    {{- if and .IsPage (eq .Section "post") -}}
+      {{- $copyJs := resources.Get "js/copy-code.js" | resources.Minify | resources.Fingerprint -}}
+      <script src="{{ $copyJs.RelPermalink }}" defer></script>
+    {{- end -}}
+
+    {{- if .Params.mermaid -}}
+      <script src="{{ "vendor/mermaid/mermaid-11.12.0.min.js" | relURL }}" defer></script>
+      {{- $mermaidJs := resources.Get "js/mermaid-init.js" | resources.Minify | resources.Fingerprint -}}
+      <script src="{{ $mermaidJs.RelPermalink }}" defer></script>
+    {{- end -}}
     
     <!-- Background Particle Engine -->
     {{- $particlesJs := resources.Get "js/particles.js" -}}
@@ -179,7 +196,5 @@
       <script src="{{ $particlesJsSecure.RelPermalink }}" defer></script>
     {{- end -}}
     
-    <!-- Import After Footer logic for theme plugins (like search, Meting, etc.) -->
-    {{- partialCached "afterFooter.html" . -}}
   </body>
 </html>

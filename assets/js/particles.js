@@ -1,254 +1,191 @@
 const initParticlesEngine = () => {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const compactScreen = window.matchMedia("(max-width: 640px)");
   const canvas = document.getElementById("tech-particles");
-  if (!canvas) return;
+  if (!canvas || reduceMotion.matches || compactScreen.matches) return;
 
-  const ctx = canvas.getContext("2d");
+  const context = canvas.getContext("2d");
+  if (!context) return;
+
   let particles = [];
-  let themeSettings = getThemeSettings();
-  let particleColor = themeSettings.color;
-  let connectionDistance = themeSettings.connectionDistance;
-  let maxParticles = themeSettings.maxParticles;
+  let animationId = 0;
+  let lastFrame = 0;
+  let resizeId = 0;
+  let settings;
+  let width = 0;
+  let height = 0;
+  const mouse = { x: null, y: null, radius: 120 };
 
-  const mouse = {
-    x: null,
-    y: null,
-    radius: 150,
-  };
-
-  function getThemeSettings() {
+  const readSettings = () => {
     const isDark = document.documentElement.classList.contains("dark");
-    const rootStyle = getComputedStyle(document.documentElement);
-    let color = rootStyle.getPropertyValue("--particle-color").trim();
-    if (!color) {
-      color = isDark ? "rgba(77, 178, 255, 0.35)" : "rgba(8, 145, 178, 0.52)";
-    }
+    const cssColor = getComputedStyle(document.documentElement)
+      .getPropertyValue("--particle-color")
+      .trim();
 
     return {
-      color,
       isDark,
-      lineOpacityBase: isDark ? 0.25 : 0.48,
-      lineOpacityPacket: isDark ? 1.5 : 2.4,
-      maxParticles: isDark ? 65 : 88,
-      connectionDistance: isDark ? 110 : 140,
-      binaryAlpha: isDark ? 0.28 : 0.55,
-      crossArm: isDark ? 3 : 4.5,
-      lineWidth: isDark ? 0.65 : 1,
-      sizeMin: isDark ? 1 : 1.3,
-      sizeRange: isDark ? 2 : 2.8,
-      glow: !isDark,
+      color: cssColor || (isDark ? "rgba(77, 178, 255, 0.32)" : "rgba(14, 116, 144, 0.35)"),
+      maxParticles: isDark ? 42 : 50,
+      connectionDistance: isDark ? 105 : 115,
+      lineOpacity: isDark ? 0.2 : 0.24,
+      binaryAlpha: isDark ? 0.24 : 0.32,
     };
-  }
-
-  function applyThemeSettings() {
-    themeSettings = getThemeSettings();
-    particleColor = themeSettings.color;
-    connectionDistance = themeSettings.connectionDistance;
-    maxParticles = themeSettings.maxParticles;
-  }
+  };
 
   class Particle {
     constructor() {
-      this.x = Math.random() * canvas.width;
-      this.y = Math.random() * canvas.height;
-      this.size =
-        Math.random() * themeSettings.sizeRange + themeSettings.sizeMin;
-      this.speedX = (Math.random() - 0.5) * 0.4;
-      this.speedY = (Math.random() - 0.5) * 0.4;
+      this.x = Math.random() * width;
+      this.y = Math.random() * height;
+      this.size = Math.random() * 1.6 + 0.8;
+      this.speedX = (Math.random() - 0.5) * 0.25;
+      this.speedY = (Math.random() - 0.5) * 0.25;
       this.type = Math.floor(Math.random() * 3);
       this.char = Math.random() > 0.5 ? "1" : "0";
-      this.seed = Math.random() * 100;
     }
 
     update() {
       this.x += this.speedX;
       this.y += this.speedY;
+      if (this.x < 0 || this.x > width) this.speedX *= -1;
+      if (this.y < 0 || this.y > height) this.speedY *= -1;
 
-      if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
-      if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
-
-      if (mouse.x !== null && mouse.y !== null) {
-        const dx = mouse.x - this.x;
-        const dy = mouse.y - this.y;
-        const distance = Math.hypot(dx, dy);
-
-        if (distance < mouse.radius) {
-          const force = (mouse.radius - distance) / mouse.radius;
-          this.x += (dx / distance) * force * 0.4;
-          this.y += (dy / distance) * force * 0.4;
-        }
-      }
+      if (mouse.x === null || mouse.y === null) return;
+      const dx = mouse.x - this.x;
+      const dy = mouse.y - this.y;
+      const distance = Math.hypot(dx, dy);
+      if (!distance || distance >= mouse.radius) return;
+      const force = ((mouse.radius - distance) / mouse.radius) * 0.25;
+      this.x += (dx / distance) * force;
+      this.y += (dy / distance) * force;
     }
 
     draw() {
-      ctx.fillStyle = particleColor;
-      ctx.strokeStyle = particleColor;
-
+      context.fillStyle = settings.color;
+      context.strokeStyle = settings.color;
       if (this.type === 0) {
-        if (themeSettings.glow) {
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = particleColor;
-        }
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        context.beginPath();
+        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        context.fill();
       } else if (this.type === 1) {
-        const arm = themeSettings.crossArm;
-        ctx.beginPath();
-        ctx.moveTo(this.x - arm, this.y);
-        ctx.lineTo(this.x + arm, this.y);
-        ctx.moveTo(this.x, this.y - arm);
-        ctx.lineTo(this.x, this.y + arm);
-        ctx.lineWidth = themeSettings.lineWidth;
-        ctx.stroke();
+        context.beginPath();
+        context.moveTo(this.x - 2.5, this.y);
+        context.lineTo(this.x + 2.5, this.y);
+        context.moveTo(this.x, this.y - 2.5);
+        context.lineTo(this.x, this.y + 2.5);
+        context.lineWidth = 0.7;
+        context.stroke();
       } else {
-        ctx.font = `${themeSettings.isDark ? 9 : 10}px var(--font-mono), monospace`;
-        ctx.globalAlpha = themeSettings.binaryAlpha;
-        ctx.fillText(this.char, this.x - 3, this.y + 3);
-        ctx.globalAlpha = 1;
+        context.globalAlpha = settings.binaryAlpha;
+        context.font = "9px var(--font-mono), monospace";
+        context.fillText(this.char, this.x - 3, this.y + 3);
+        context.globalAlpha = 1;
       }
     }
   }
 
-  function initParticles() {
-    particles = [];
+  const resetParticles = () => {
     const count = Math.min(
-      maxParticles,
-      Math.floor((canvas.width * canvas.height) / (themeSettings.isDark ? 25000 : 20000)),
+      settings.maxParticles,
+      Math.floor((width * height) / 26000),
     );
-    for (let i = 0; i < count; i++) {
-      particles.push(new Particle());
-    }
-  }
+    particles = Array.from({ length: count }, () => new Particle());
+  };
 
-  function drawConnections() {
-    const time = Date.now() * 0.001;
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const distance = Math.hypot(dx, dy);
+  const resize = () => {
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    settings = readSettings();
+    resetParticles();
+  };
 
-        if (distance < connectionDistance) {
-          const opacity =
-            (1 - distance / connectionDistance) * themeSettings.lineOpacityBase;
-          ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = particleColor;
-          ctx.lineWidth = themeSettings.lineWidth;
-          ctx.globalAlpha = opacity;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
+  const drawConnections = () => {
+    for (let first = 0; first < particles.length; first += 1) {
+      for (let second = first + 1; second < particles.length; second += 1) {
+        const dx = particles[first].x - particles[second].x;
+        const dy = particles[first].y - particles[second].y;
+        const distanceSquared = dx * dx + dy * dy;
+        const limitSquared = settings.connectionDistance ** 2;
+        if (distanceSquared >= limitSquared) continue;
 
-          const speedFactor = 0.5 + (particles[i].seed % 0.5);
-          const progress = (time * speedFactor + particles[i].seed) % 1;
-
-          const packetX = particles[i].x + (particles[j].x - particles[i].x) * progress;
-          const packetY = particles[i].y + (particles[j].y - particles[i].y) * progress;
-
-          ctx.fillStyle = particleColor;
-          ctx.globalAlpha = opacity * themeSettings.lineOpacityPacket;
-          if (themeSettings.glow) {
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = particleColor;
-          }
-          ctx.beginPath();
-          ctx.arc(packetX, packetY, themeSettings.isDark ? 1.8 : 2.2, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.globalAlpha = 1;
-        }
+        const distance = Math.sqrt(distanceSquared);
+        context.globalAlpha = (1 - distance / settings.connectionDistance) * settings.lineOpacity;
+        context.beginPath();
+        context.moveTo(particles[first].x, particles[first].y);
+        context.lineTo(particles[second].x, particles[second].y);
+        context.lineWidth = 0.65;
+        context.strokeStyle = settings.color;
+        context.stroke();
+        context.globalAlpha = 1;
       }
     }
-  }
+  };
 
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    initParticles();
-  }
-
-  let animationId = null;
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    particles.forEach((p) => {
-      p.update();
-      p.draw();
+  const animate = (timestamp) => {
+    animationId = window.requestAnimationFrame(animate);
+    if (timestamp - lastFrame < 33) return;
+    lastFrame = timestamp;
+    context.clearRect(0, 0, width, height);
+    particles.forEach((particle) => {
+      particle.update();
+      particle.draw();
     });
-
     drawConnections();
-    animationId = requestAnimationFrame(animate);
-  }
+  };
 
-  function checkThemeAndToggle() {
-    canvas.style.display = "block";
-    applyThemeSettings();
-    if (!animationId) {
-      resizeCanvas();
-      animate();
-    } else {
-      initParticles();
-    }
-  }
+  const start = () => {
+    if (animationId || document.hidden || reduceMotion.matches || compactScreen.matches) return;
+    animationId = window.requestAnimationFrame(animate);
+  };
 
-  const observer = new MutationObserver(() => {
-    applyThemeSettings();
-    initParticles();
+  const stop = () => {
+    window.cancelAnimationFrame(animationId);
+    animationId = 0;
+  };
+
+  resize();
+  start();
+
+  window.addEventListener("resize", () => {
+    window.cancelAnimationFrame(resizeId);
+    resizeId = window.requestAnimationFrame(resize);
   });
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme", "data-theme-mode", "class"],
-  });
-
-  window.addEventListener("resize", resizeCanvas);
-  checkThemeAndToggle();
-
-  window.addEventListener("mousemove", (e) => {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-  });
-
+  window.addEventListener("mousemove", (event) => {
+    mouse.x = event.clientX;
+    mouse.y = event.clientY;
+  }, { passive: true });
   window.addEventListener("mouseleave", () => {
     mouse.x = null;
     mouse.y = null;
   });
-
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
-      }
-    } else {
-      checkThemeAndToggle();
+    if (document.hidden) stop();
+    else start();
+  });
+  reduceMotion.addEventListener("change", (event) => {
+    if (event.matches) stop();
+    else start();
+  });
+  compactScreen.addEventListener("change", (event) => {
+    if (event.matches) stop();
+    else {
+      resize();
+      start();
     }
   });
-
-  let scrollTimeout;
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (scrollTimeout) return;
-      scrollTimeout = setTimeout(() => {
-        if (window.scrollY > window.innerHeight * 1.5) {
-          if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-          }
-        } else if (!animationId) {
-          checkThemeAndToggle();
-        }
-        scrollTimeout = null;
-      }, 200);
-    },
-    { passive: true },
-  );
+  new MutationObserver(() => {
+    settings = readSettings();
+    resetParticles();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 };
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initParticlesEngine);
+  document.addEventListener("DOMContentLoaded", initParticlesEngine, { once: true });
 } else {
   initParticlesEngine();
 }

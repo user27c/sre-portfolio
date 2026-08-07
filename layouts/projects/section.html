@@ -8,21 +8,20 @@
 <section class="projects-section list-section">
   <header class="list-header">
     <h1 class="list-title">Projects</h1>
-    <p class="list-subtitle">// Featured Projects & Open Source Repositories @{{ $username }}</p>
+    <p class="list-subtitle">// 项目复盘与公开仓库 · @{{ $username }}</p>
   </header>
 
-  <!-- 板块一：精选主打项目 (点击阅读中文深度解析文章) -->
-  <div class="github-repos-header" style="margin-top: 20px;">
-    <h2 class="github-repos-title">🌟 Featured Projects (点击阅读深度解析文章)</h2>
+  <div class="github-repos-header github-repos-header--spaced">
+    <h2 class="github-repos-title">项目复盘</h2>
   </div>
-  <ul class="github-repo-list" style="margin-bottom: 40px;">
+  <ul class="github-repo-list github-repo-list--featured">
     {{- $featuredPages := where site.RegularPages "Section" "projects" -}}
     {{- range $featuredPages -}}
-      <li class="github-repo-item glass-card" style="border-left: 4px solid #3b82f6;">
-        <a href="{{ .RelPermalink }}" class="github-repo-link" target="_self" rel="noopener noreferrer">
+      <li class="github-repo-item github-repo-item--featured glass-card">
+        <a href="{{ .RelPermalink }}" class="github-repo-link">
           <div class="github-repo-top">
             <span class="github-repo-name">{{ .Title }}</span>
-            <span class="github-repo-badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 600;">🌟 核心推荐 (点击阅读)</span>
+            <span class="github-repo-badge">case study</span>
           </div>
           {{- with .Params.description -}}
             <p class="github-repo-desc">{{ . }}</p>
@@ -37,10 +36,9 @@
     {{- end -}}
   </ul>
 
-  <!-- 板块二：其他开源仓库 (点击跳转外部 GitHub 源码) -->
   {{- if $repos -}}
     <div class="github-repos-header">
-      <h2 class="github-repos-title">📦 Open Source Repositories (点击跳转外部 GitHub 源码)</h2>
+      <h2 class="github-repos-title">公开仓库</h2>
       <span class="github-repos-count">{{ len $repos }} repos</span>
     </div>
     <ul class="github-repo-list">
@@ -78,11 +76,5 @@
 {{ end }}
 
 {{ define "sidebar" }}
-<div class="widget-wrap glass-card search-widget popup-trigger">
-  <span class="search-widget-icon">🔍</span>
-  <span class="search-widget-text">Search posts...</span>
-  <kbd class="search-widget-key">⌘K</kbd>
-</div>
-
-{{ partial "profile_card.html" . }}
+{{ partial "search_button.html" . }}
 {{ end }}

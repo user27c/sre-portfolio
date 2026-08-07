@@ -6,7 +6,12 @@ metadata:
   labels:
     app: blog-portfolio
 spec:
-  replicas: 2 # 高可用双副本部署
+  replicas: 2 # 双副本冗余；完整 HA 还依赖多节点、PDB 与拓扑分散
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: blog-portfolio
@@ -20,10 +25,25 @@ spec:
         runAsNonRoot: true
         runAsUser: 101 # Nginx alpine 默认的 nginx 用户 UID
         fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: blog-portfolio
       containers:
         - name: blog-web
-          image: registry.cn-chengdu.aliyuncs.com/22-7-co/blog-portfolio:latest # 示例 ACR 镜像地址
+          image: registry.cn-chengdu.aliyuncs.com/user27c/blog-portfolio:sha-CHANGE_ME
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8080
               name: http
@@ -42,12 +62,36 @@ spec:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 15
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

@@ -2,7 +2,7 @@
 <section class="list-section">
   <header class="list-header">
     <h1 class="list-title">Archives</h1>
-    <p class="list-subtitle">{{ len (where .Site.RegularPages "Type" "post") }} articles total</p>
+    <p class="list-subtitle">共 {{ len (where .Site.RegularPages "Type" "post") }} 篇文章</p>
   </header>
 
   <div class="archives-container">
@@ -13,7 +13,7 @@
         <ul class="posts-list">
           {{ range .Pages }}
             <li class="post-item">
-              <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02" }}</time>
+              <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "01-02" }}</time>
               <div class="post-meta-wrap">
                 <a href="{{ .RelPermalink }}" class="post-link">{{ .Title }}</a>
                 {{ if .Params.tags }}
@@ -34,13 +34,6 @@
 {{ end }}
 
 {{ define "sidebar" }}
-<!-- 1. Search Box Widget -->
-<div class="widget-wrap glass-card search-widget popup-trigger">
-  <span class="search-widget-icon">🔍</span>
-  <span class="search-widget-text">Search posts...</span>
-  <kbd class="search-widget-key">⌘K</kbd>
-</div>
-
-<!-- 2. Reusable Developer Profile Widget -->
-{{ partial "profile_card.html" . }}
+{{ partial "search_button.html" . }}
+{{ partial "taxonomies_widget.html" . }}
 {{ end }}

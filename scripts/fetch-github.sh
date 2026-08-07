@@ -23,9 +23,20 @@ import json, sys
 user_path, repos_path, out_path = sys.argv[1:4]
 user = json.load(open(user_path))
 repos = json.load(open(repos_path))
-exclude = {"22-7-co.github.io"}
+exclude = {"22-7-co.github.io", "sre-portfolio"}
 filtered = [r for r in repos if not r.get("fork") and r.get("name") not in exclude]
 filtered.sort(key=lambda r: r.get("updated_at", ""), reverse=True)
-json.dump({"user": user, "repos": filtered[:50]}, open(out_path, "w"), ensure_ascii=False, indent=2)
-print(f"Wrote {out_path} ({len(filtered[:50])} repos)")
+user_fields = ("login", "html_url", "avatar_url", "bio", "public_repos")
+repo_fields = (
+    "name", "html_url", "description", "language", "stargazers_count",
+    "updated_at", "private", "fork",
+)
+snapshot = {
+    "user": {key: user.get(key) for key in user_fields},
+    "repos": [{key: repo.get(key) for key in repo_fields} for repo in filtered[:12]],
+}
+with open(out_path, "w", encoding="utf-8") as output:
+    json.dump(snapshot, output, ensure_ascii=False, indent=2)
+    output.write("\n")
+print(f"Wrote {out_path} ({len(snapshot['repos'])} repos)")
 PY

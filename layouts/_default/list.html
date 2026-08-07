@@ -14,7 +14,7 @@
   <ul class="posts-list">
     {{ range .Pages }}
       <li class="post-item">
-        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02, 2006" }}</time>
+        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
         <div class="post-meta-wrap">
           <a href="{{ .RelPermalink }}" class="post-link">{{ .Title }}</a>
           {{ if .Params.tags }}
@@ -27,20 +27,13 @@
         </div>
       </li>
     {{ else }}
-      <p class="empty-message">No posts found.</p>
+      <p class="empty-message">暂无文章。</p>
     {{ end }}
   </ul>
 </section>
 {{ end }}
 
 {{ define "sidebar" }}
-<!-- 1. Search Box Widget -->
-<div class="widget-wrap glass-card search-widget popup-trigger">
-  <span class="search-widget-icon">🔍</span>
-  <span class="search-widget-text">Search posts...</span>
-  <kbd class="search-widget-key">⌘K</kbd>
-</div>
-
-<!-- 2. Reusable Developer Profile Widget -->
-{{ partial "profile_card.html" . }}
+{{ partial "search_button.html" . }}
+{{ partial "taxonomies_widget.html" . }}
 {{ end }}

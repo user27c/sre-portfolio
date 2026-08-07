@@ -2,5 +2,5 @@
 username = "user27c"
 excludeForks = true
 excludeRepos = ["22-7-co.github.io", "sre-portfolio"]
-maxRepos = 50
+maxRepos = 12
 sortBy = "updated" # updated | stars

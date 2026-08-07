@@ -27,15 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: 安装 Hugo Extended
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: "0.161.1"
+          hugo-version: "0.164.0"
           extended: true
 
       - name: 刷新 GitHub 项目数据
@@ -47,13 +46,16 @@ jobs:
 
       - name: 设置 GitHub Pages
         id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: 使用 Hugo 构建
-        run: hugo --gc --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
+        run: hugo --gc --minify --panicOnWarning --baseURL "${{ steps.pages.outputs.base_url }}/"
+
+      - name: 检查生成页面和内部链接
+        run: python3 scripts/check-site.py public /sre-portfolio/
 
       - name: 上传构建产物
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./public
 
@@ -63,6 +65,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: 部署到 GitHub Pages
         id: deployment
@@ -91,9 +95,9 @@ jobs:
             项目: ${{ github.repository }}
             状态: ${{ needs.deploy.result }}
             提交人: ${{ github.actor }}
-            提交信息: ${{ github.event.head_commit.message }}
+            提交信息: ${{ github.event.head_commit.message || format('由 {0} 触发', github.event_name) }}
 
             查看 Action 运行详情:
             https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            在线预览：https://${{ github.repository_owner }}.github.io/
+            在线预览：${{ needs.deploy.outputs.page_url }}
           html_body: false

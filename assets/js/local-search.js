@@ -1,116 +1,155 @@
-document.addEventListener('DOMContentLoaded', () => {
+const initLocalSearch = () => {
+  const siteSearch = document.getElementById("site-search");
+  const popup = siteSearch?.querySelector('[role="dialog"]');
+  const input = document.getElementById("local-search-input");
+  const hits = document.getElementById("reimu-hits");
+  const stats = document.getElementById("reimu-stats");
+  const mask = document.getElementById("mask");
+  const closeButton = siteSearch?.querySelector(".popup-btn-close");
+
+  if (!siteSearch || !popup || !input || !hits || !stats || !mask) return;
+
+  const indexUrl = siteSearch.dataset.indexUrl || "/algolia.json";
   let searchData = [];
-  let isFetched = false;
+  let fetchPromise = null;
+  let previousFocus = null;
 
-  const searchInput = document.getElementById('local-search-input');
-  const hitsContainer = document.getElementById('reimu-hits');
-  const statsContainer = document.getElementById('reimu-stats');
-  const popup = document.querySelector('.site-search .reimu-popup.popup');
-  const mask = document.getElementById('mask');
-  const siteSearch = document.querySelector('.site-search');
-  const indexUrl = window.__SEARCH_INDEX_URL || '/algolia.json';
+  const setExpanded = (expanded) => {
+    document.querySelectorAll(".popup-trigger").forEach((trigger) => {
+      trigger.setAttribute("aria-expanded", String(expanded));
+    });
+  };
 
-  if (!siteSearch || !popup || !searchInput || !hitsContainer || !statsContainer) {
-    console.warn('Local search: required DOM elements missing.');
-    return;
-  }
+  const loadIndex = async () => {
+    if (fetchPromise) return fetchPromise;
+
+    stats.textContent = "正在载入搜索索引…";
+    fetchPromise = fetch(indexUrl)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((data) => {
+        searchData = Array.isArray(data) ? data : [];
+        stats.textContent = `可搜索 ${searchData.length} 篇文章`;
+        return searchData;
+      })
+      .catch((error) => {
+        fetchPromise = null;
+        stats.textContent = "搜索索引载入失败，请稍后重试。";
+        console.error("Search index fetch failed:", error);
+        return [];
+      });
+
+    return fetchPromise;
+  };
 
   const openSearch = () => {
-    if (!siteSearch || !popup) return;
-    document.body.style.overflow = 'hidden';
-    siteSearch.classList.add('show');
-    popup.classList.add('show');
-    mask?.classList.remove('hide');
-    setTimeout(() => searchInput?.focus(), 100);
+    if (siteSearch.classList.contains("show")) return;
 
-    // Fetch data lazy load
-    if (!isFetched) {
-      statsContainer.innerHTML = 'Loading search index...';
-      fetch(indexUrl)
-        .then(res => res.json())
-        .then(data => {
-          searchData = data;
-          isFetched = true;
-          statsContainer.innerHTML = 'Ready to search ' + data.length + ' posts.';
-        })
-        .catch(err => {
-          statsContainer.innerHTML = 'Failed to load search index.';
-          console.error('Search JSON fetch error:', err);
-        });
-    }
+    previousFocus = document.activeElement;
+    document.body.classList.add("modal-open");
+    siteSearch.classList.add("show");
+    popup.classList.add("show");
+    mask.classList.remove("hide");
+    siteSearch.setAttribute("aria-hidden", "false");
+    setExpanded(true);
+    window.setTimeout(() => input.focus(), 0);
+    void loadIndex();
   };
 
-  // Close Search Modal
   const closeSearch = () => {
-    document.body.style.overflow = '';
-    siteSearch?.classList.remove('show');
-    popup?.classList.remove('show');
-    mask?.classList.add('hide');
-    if (searchInput) searchInput.value = '';
-    if (hitsContainer) hitsContainer.innerHTML = '';
-    if (isFetched) {
-        statsContainer.innerHTML = '';
-    }
+    document.body.classList.remove("modal-open");
+    siteSearch.classList.remove("show");
+    popup.classList.remove("show");
+    mask.classList.add("hide");
+    siteSearch.setAttribute("aria-hidden", "true");
+    input.value = "";
+    hits.replaceChildren();
+    stats.textContent = "";
+    setExpanded(false);
+    if (previousFocus instanceof HTMLElement) previousFocus.focus();
   };
 
-  if (popup) {
-    popup.__closePopup = closeSearch;
-  }
-  window.openLocalSearch = openSearch;
+  const renderResults = (query) => {
+    hits.replaceChildren();
+    if (!query) {
+      stats.textContent = `可搜索 ${searchData.length} 篇文章`;
+      return;
+    }
 
-  // Bind Triggers
-  document.querySelectorAll('.popup-trigger').forEach(trigger => {
-    trigger.addEventListener('click', (e) => {
-      e.preventDefault();
-      openSearch();
+    const normalizedQuery = query.toLocaleLowerCase();
+    const results = searchData
+      .filter((post) => {
+        const title = String(post.title || "").toLocaleLowerCase();
+        const content = String(post.content || "").toLocaleLowerCase();
+        return title.includes(normalizedQuery) || content.includes(normalizedQuery);
+      })
+      .slice(0, 20);
+
+    stats.textContent = results.length
+      ? `找到 ${results.length} 条结果`
+      : "没有匹配的文章";
+
+    if (!results.length) {
+      const empty = document.createElement("p");
+      empty.className = "no-results";
+      empty.textContent = "试试更短或不同的关键词。";
+      hits.appendChild(empty);
+      return;
+    }
+
+    const list = document.createElement("ul");
+    list.className = "search-result-list";
+    results.forEach((post) => {
+      const item = document.createElement("li");
+      item.className = "search-result-item";
+      const link = document.createElement("a");
+      link.className = "search-result-title";
+      link.href = String(post.permalink || "#");
+      link.textContent = String(post.title || "未命名文章");
+      item.appendChild(link);
+      list.appendChild(item);
     });
+    hits.appendChild(list);
+  };
+
+  document.querySelectorAll(".popup-trigger").forEach((trigger) => {
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.addEventListener("click", openSearch);
   });
+  closeButton?.addEventListener("click", closeSearch);
+  mask.addEventListener("click", closeSearch);
+  input.addEventListener("input", () => renderResults(input.value.trim()));
 
-  const closeBtn = document.querySelector('.popup-btn-close');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeSearch);
-  }
-
-  // Escape key to close
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && popup?.classList.contains('show')) {
+  popup.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
       closeSearch();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+    const focusable = [...popup.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
     }
   });
 
-  // Search Logic
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      const query = this.value.trim().toLowerCase();
-      if (!query) {
-        hitsContainer.innerHTML = '';
-        statsContainer.innerHTML = 'Search across ' + searchData.length + ' posts.';
-        return;
-      }
+  window.openLocalSearch = openSearch;
+};
 
-      const results = searchData.filter(post => {
-        return (post.title && post.title.toLowerCase().includes(query)) ||
-               (post.content && post.content.toLowerCase().includes(query));
-      });
-
-      statsContainer.innerHTML = `Found ${results.length} result(s).`;
-
-      if (results.length === 0) {
-        hitsContainer.innerHTML = '<div class="no-results">No posts found matching your query.</div>';
-        return;
-      }
-
-      let html = '<ul class="search-result-list">';
-      results.forEach(post => {
-        html += `
-          <li class="search-result-item">
-            <a href="${post.permalink}" class="search-result-title">${post.title}</a>
-          </li>
-        `;
-      });
-      html += '</ul>';
-
-      hitsContainer.innerHTML = html;
-    });
-  }
-});
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initLocalSearch, { once: true });
+} else {
+  initLocalSearch();
+}

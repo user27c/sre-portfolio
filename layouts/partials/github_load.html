@@ -1,72 +1,29 @@
-{{- $cfg := site.Data.github -}}
-{{- $username := $cfg.username | default "22-7-co" -}}
+{{- $cfg := hugo.Data.github -}}
+{{- $fallback := hugo.Data.github_fallback -}}
+{{- $username := $cfg.username | default "user27c" -}}
 {{- $excludeForks := $cfg.excludeForks | default true -}}
 {{- $excludeRepos := $cfg.excludeRepos | default (slice) -}}
 {{- $maxRepos := $cfg.maxRepos | default 50 -}}
 {{- $sortBy := $cfg.sortBy | default "updated" -}}
 
-{{- $user := dict -}}
+{{- $user := $fallback.user | default dict -}}
 {{- $repos := slice -}}
 {{- $fetchError := "" -}}
-
-{{- $userURL := printf "https://api.github.com/users/%s" $username -}}
-{{- $reposURL := printf "https://api.github.com/users/%s/repos?per_page=100&type=owner&sort=updated" $username -}}
-{{- if eq $sortBy "stars" -}}
-  {{- $reposURL = printf "https://api.github.com/users/%s/repos?per_page=100&type=owner&sort=stars" $username -}}
-{{- end -}}
-
-{{- with try (resources.GetRemote $userURL) -}}
-  {{- if .Err -}}
-    {{- $fetchError = printf "user: %v" .Err -}}
-  {{- else if .Value -}}
-    {{- $user = .Value.Content | transform.Unmarshal -}}
-  {{- else -}}
-    {{- $fetchError = "user: nil value" -}}
+{{- with $fallback.repos -}}
+  {{- range . -}}
+    {{- $skip := false -}}
+    {{- if and $excludeForks .fork }}{{ $skip = true }}{{ end -}}
+    {{- if in $excludeRepos .name }}{{ $skip = true }}{{ end -}}
+    {{- if not $skip }}{{ $repos = $repos | append . }}{{ end -}}
   {{- end -}}
 {{- else -}}
-  {{- $fetchError = "user: request failed" -}}
+  {{- $fetchError = "GitHub snapshot unavailable" -}}
 {{- end -}}
-
-{{- if not $fetchError -}}
-  {{- with try (resources.GetRemote $reposURL) -}}
-    {{- if .Err -}}
-      {{- $fetchError = printf "repos: %v" .Err -}}
-    {{- else if .Value -}}
-      {{- $rawRepos := .Value.Content | transform.Unmarshal -}}
-      {{- range $rawRepos -}}
-        {{- $skip := false -}}
-        {{- if and $excludeForks .fork -}}
-          {{- $skip = true -}}
-        {{- end -}}
-        {{- if in $excludeRepos .name -}}
-          {{- $skip = true -}}
-        {{- end -}}
-        {{- if not $skip -}}
-          {{- $repos = $repos | append . -}}
-        {{- end -}}
-      {{- end -}}
-      {{- if eq $sortBy "stars" -}}
-        {{- $repos = sort $repos "stargazers_count" "desc" -}}
-      {{- else -}}
-        {{- $repos = sort $repos "updated_at" "desc" -}}
-      {{- end -}}
-      {{- if gt (len $repos) $maxRepos -}}
-        {{- $repos = first $maxRepos $repos -}}
-      {{- end -}}
-    {{- else -}}
-      {{- $fetchError = "repos: nil value" -}}
-    {{- end -}}
-  {{- else -}}
-    {{- $fetchError = "repos: request failed" -}}
-  {{- end -}}
+{{- if eq $sortBy "stars" -}}
+  {{- $repos = sort $repos "stargazers_count" "desc" -}}
+{{- else -}}
+  {{- $repos = sort $repos "updated_at" "desc" -}}
 {{- end -}}
-
-{{- with site.Data.github_fallback -}}
-  {{- if and $fetchError .user -}}
-    {{- $user = .user -}}
-    {{- $repos = .repos | default $repos -}}
-    {{- $fetchError = "" -}}
-  {{- end -}}
-{{- end -}}
+{{- if gt (len $repos) $maxRepos }}{{ $repos = first $maxRepos $repos }}{{ end -}}
 
 {{- .Scratch.Set "github" (dict "user" $user "repos" $repos "username" $username "error" $fetchError) -}}
