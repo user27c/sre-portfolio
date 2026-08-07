@@ -344,6 +344,14 @@ html.dark .theme-toggle-btn {
   }
 }
 
+.site-grid--single-column {
+  grid-template-columns: minmax(0, 780px);
+
+  .site-sidebar {
+    display: none;
+  }
+}
+
 .site-main {
   min-width: 0; // Prevent content overflow inside Grid cells
 }

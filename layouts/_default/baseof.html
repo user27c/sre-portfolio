@@ -130,7 +130,7 @@
     <!-- Centered Blog Layout -->
     <div class="site-wrapper">
       <!-- Two Column Sidebar Grid -->
-      <div class="site-grid">
+      <div class="site-grid{{ if and .IsSection (eq .Section "projects") }} site-grid--single-column{{ end }}">
         <main id="main-content" class="site-main" tabindex="-1">
           {{ block "main" . }}{{ end }}
         </main>
