@@ -8,7 +8,7 @@
   --fg-rgb: 15, 23, 42;
   --card-bg-rgb: 252, 253, 255;
   --border-rgb: 148, 163, 184;
-  --accent-rgb: 14, 116, 144; // Cyan-700 — readable for small text on light backgrounds
+  --accent-rgb: 8, 145, 178; // Cyan-600 — matches dark theme electric vibe
   --glow-rgb: 14, 165, 233;
   --shadow-rgb: 15, 23, 42;
 
@@ -18,7 +18,7 @@
   --border: rgba(var(--border-rgb), 0.85);
   --grid-dot: rgba(var(--accent-rgb), 0.22);
   --code-bg: #f0f4f8;
-  --accent: #0e7490;
+  --accent: #0891b2;
   --accent-glow: #0ea5e9;
   --tag-bg: rgba(var(--accent-rgb), 0.1);
   --card-bg: rgba(var(--card-bg-rgb), 0.88);
@@ -126,10 +126,6 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 0; // Stacked above html background, below content layers
   pointer-events: none;
   background-color: transparent;
-}
-
-html:not(.dark) #tech-particles {
-  opacity: 0.35;
 }
 
 @keyframes blink {
@@ -290,8 +286,7 @@ html.dark .glass-card {
   }
 }
 
-.theme-toggle-btn,
-.nav-action-btn {
+.theme-toggle-btn {
   background: none;
   border: none;
   color: var(--muted);
@@ -1692,8 +1687,7 @@ html:not(.dark) {
     padding: 0.35rem 0.25rem;
   }
 
-  .theme-toggle-btn,
-  .nav-action-btn {
+  .theme-toggle-btn {
     min-width: 34px;
     min-height: 34px;
   }
@@ -1756,7 +1750,14 @@ html:not(.dark) {
 }
 
 .github-repo-item--featured {
-  border-left: 3px solid var(--accent);
+  border-left: 4px solid #3b82f6;
+}
+
+.github-repo-badge--featured {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.3);
+  font-weight: 600;
 }
 
 .github-fetch-error {

@@ -32,6 +32,7 @@ timeFormat: "2006-01-02 15:04:05"
 author: 22/7.
 email: x22han7@gmail.com
 description: "记录 SRE、云原生、Go、自动化运维与工程实践。"
+home_description: "computer science student..."
 # subtitle: "少女祈祷中..."
 subtitle:
   typing:
@@ -50,7 +51,7 @@ subtitle:
     showCursor: true            # 是否显示闪烁的字符
     cursorChar: "|"             # 字符
     smartBackspace: true       # 智能退格，只删除不同的部分
-  text: "记录系统、可靠性与工程实践。"        # 当 typing.enable = false 时使用
+  text: "computer science student..."        # 当 typing.enable = false 时使用
 
 banner: false
 # You can also write it in the form of the following url

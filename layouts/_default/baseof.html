@@ -75,7 +75,7 @@
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">跳到正文</a>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <!-- Background Canvas Particles -->
     <canvas id="tech-particles"></canvas>
     
@@ -107,19 +107,13 @@
           <span class="logo-cursor">_</span>
         </a>
         
-        <nav class="site-nav" aria-label="主导航">
+        <nav class="site-nav" aria-label="Main navigation">
           <a href="{{ "" | relLangURL }}" class="nav-link{{ if .IsHome }} is-active{{ end }}"{{ if .IsHome }} aria-current="page"{{ end }}>Home</a>
           <a href="{{ "archives" | relLangURL }}" class="nav-link{{ if eq .Type "archives" }} is-active{{ end }}"{{ if eq .Type "archives" }} aria-current="page"{{ end }}>Posts</a>
           <a href="{{ "projects" | relLangURL }}" class="nav-link{{ if eq .Section "projects" }} is-active{{ end }}"{{ if eq .Section "projects" }} aria-current="page"{{ end }}>Projects</a>
           <a href="{{ "about" | relLangURL }}" class="nav-link{{ if and .File (eq .File.ContentBaseName "about") }} is-active{{ end }}"{{ if and .File (eq .File.ContentBaseName "about") }} aria-current="page"{{ end }}>About</a>
-          {{- if .Site.Params.local_search.enable }}
-          <button type="button" class="nav-action-btn popup-trigger" aria-label="搜索文章" aria-haspopup="dialog" aria-controls="site-search">
-            <span aria-hidden="true">⌕</span>
-          </button>
-          {{- end }}
-          
           <!-- Minimalist Mode Toggler -->
-          <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="切换到深色主题" aria-pressed="false">
+          <button type="button" id="theme-toggle" class="theme-toggle-btn" aria-label="Switch to dark theme" aria-pressed="false">
             <span class="toggle-icon-light" aria-hidden="true">☼</span>
             <span class="toggle-icon-dark" aria-hidden="true">☾</span>
           </button>

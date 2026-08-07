@@ -3,20 +3,20 @@
   <header class="list-header">
     <h1 class="list-title">
       {{ if eq .Data.Singular "tag" }}
-        标签：#{{ .Title }}
+        Tag: #{{ .Title }}
       {{ else if eq .Data.Singular "category" }}
-        分类：{{ .Title }}
+        Category: {{ .Title }}
       {{ else }}
         {{ .Title }}
       {{ end }}
     </h1>
-    <p class="list-subtitle">共 {{ len .Pages }} 篇文章</p>
+    <p class="list-subtitle">{{ len .Pages }} articles found</p>
   </header>
 
   <ul class="posts-list">
     {{ range .Pages }}
       <li class="post-item">
-        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02, 2006" }}</time>
         <div class="post-meta-wrap">
           <a href="{{ .RelPermalink }}" class="post-link">{{ .Title }}</a>
           {{ if .Params.tags }}
@@ -29,7 +29,7 @@
         </div>
       </li>
     {{ else }}
-      <p class="empty-message">暂无文章。</p>
+      <p class="empty-message">No posts found.</p>
     {{ end }}
   </ul>
 </section>

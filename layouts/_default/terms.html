@@ -2,7 +2,7 @@
 <section class="list-section">
   <header class="list-header">
     <h1 class="list-title">{{ .Title }}</h1>
-    <p class="list-subtitle">共 {{ len .Data.Terms }} 项</p>
+    <p class="list-subtitle">{{ len .Data.Terms }} items found</p>
   </header>
   
   <div class="terms-cloud">
@@ -14,7 +14,7 @@
         <span class="term-count">({{ len $value.Pages }})</span>
       </a>
     {{ else }}
-      <p class="empty-message">暂无内容。</p>
+      <p class="empty-message">No terms found.</p>
     {{ end }}
   </div>
 </section>

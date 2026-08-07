@@ -6,7 +6,7 @@ const initSite = () => {
     if (!toggleButton) return;
     const isDark = root.classList.contains("dark");
     toggleButton.setAttribute("aria-pressed", String(isDark));
-    toggleButton.setAttribute("aria-label", isDark ? "切换到浅色主题" : "切换到深色主题");
+    toggleButton.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
   };
 
   syncThemeButton();

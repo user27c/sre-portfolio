@@ -7,7 +7,7 @@
         <span class="category-count">{{ len $taxonomy.Pages }}</span>
       </a>
     {{ else }}
-      <span class="empty-message">暂无分类</span>
+      <span class="empty-message">None</span>
     {{ end }}
   </div>
 
@@ -16,7 +16,7 @@
     {{ range $name, $taxonomy := .Site.Taxonomies.tags }}
       <a href="{{ "tags/" | relURL }}{{ $name | urlize }}" class="post-tag-chip">#{{ $name }}</a>
     {{ else }}
-      <span class="empty-message">暂无标签</span>
+      <span class="empty-message">None</span>
     {{ end }}
   </div>
 </div>

@@ -8,11 +8,11 @@
 <section class="projects-section list-section">
   <header class="list-header">
     <h1 class="list-title">Projects</h1>
-    <p class="list-subtitle">// 项目复盘与公开仓库 · @{{ $username }}</p>
+    <p class="list-subtitle">// Featured Projects & Open Source Repositories @{{ $username }}</p>
   </header>
 
   <div class="github-repos-header github-repos-header--spaced">
-    <h2 class="github-repos-title">项目复盘</h2>
+    <h2 class="github-repos-title">🌟 Featured Projects (点击阅读深度解析文章)</h2>
   </div>
   <ul class="github-repo-list github-repo-list--featured">
     {{- $featuredPages := where site.RegularPages "Section" "projects" -}}
@@ -21,7 +21,7 @@
         <a href="{{ .RelPermalink }}" class="github-repo-link">
           <div class="github-repo-top">
             <span class="github-repo-name">{{ .Title }}</span>
-            <span class="github-repo-badge">case study</span>
+            <span class="github-repo-badge github-repo-badge--featured">🌟 核心推荐 (点击阅读)</span>
           </div>
           {{- with .Params.description -}}
             <p class="github-repo-desc">{{ . }}</p>
@@ -38,7 +38,7 @@
 
   {{- if $repos -}}
     <div class="github-repos-header">
-      <h2 class="github-repos-title">公开仓库</h2>
+      <h2 class="github-repos-title">📦 Open Source Repositories (点击跳转外部 GitHub 源码)</h2>
       <span class="github-repos-count">{{ len $repos }} repos</span>
     </div>
     <ul class="github-repo-list">

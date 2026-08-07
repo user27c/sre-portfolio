@@ -1,7 +1,7 @@
 baseURL = 'https://user27c.github.io/sre-portfolio/'
 # baseURL = "http://localhost:1313/"
 locale = 'zh-CN'
-title = "22/7 · 技术笔记"
+title = "22-7's information"
 
 [outputs]
 home = ["Algolia", "HTML", "RSS"]

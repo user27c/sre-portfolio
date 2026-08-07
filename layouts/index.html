@@ -1,16 +1,16 @@
 {{ define "main" }}
 <section class="intro-section">
-  <h1 class="intro-title">技术文章与工程实践</h1>
-  <p class="intro-bio">{{ .Site.Params.description }}</p>
+  <h1 class="intro-title">{{ .Site.Params.author | default "22/7." }}</h1>
+  <p class="intro-bio">{{ .Site.Params.home_description | default "computer science student..." }}</p>
 </section>
 
 <section class="posts-section">
-  <h2 class="section-title">最新文章</h2>
+  <h2 class="section-title">Recent Posts</h2>
   <ul class="posts-list">
     {{ $posts := where .Site.RegularPages "Type" "post" }}
     {{ range $posts }}
       <li class="post-item">
-        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+        <time class="post-date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 02, 2006" }}</time>
         <div class="post-meta-wrap">
           <a href="{{ .RelPermalink }}" class="post-link">{{ .Title }}</a>
           {{ if .Params.tags }}
@@ -23,7 +23,7 @@
         </div>
       </li>
     {{ else }}
-      <p class="empty-message">暂无文章。</p>
+      <p class="empty-message">No posts found.</p>
     {{ end }}
   </ul>
 </section>

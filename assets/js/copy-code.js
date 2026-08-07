@@ -9,21 +9,21 @@ const initCodeCopy = () => {
     const button = document.createElement("button");
     button.className = "copy-code-btn";
     button.type = "button";
-    button.textContent = "复制";
-    button.setAttribute("aria-label", "复制代码");
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy code");
     block.appendChild(button);
 
     button.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(code.innerText);
-        button.textContent = "已复制";
+        button.textContent = "Copied!";
         button.classList.add("copied");
         window.setTimeout(() => {
-          button.textContent = "复制";
+          button.textContent = "Copy";
           button.classList.remove("copied");
         }, 1600);
       } catch (error) {
-        button.textContent = "复制失败";
+        button.textContent = "Copy failed";
         console.error("Copy code failed:", error);
       }
     });
