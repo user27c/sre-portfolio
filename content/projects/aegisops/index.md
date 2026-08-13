@@ -1,9 +1,9 @@
 ---
-title: "AegisOps：一次 OOM 事故看证据驱动、可审批、可回滚的 AIOps Operator"
+title: "AegisOps：一次 OOM 故障演练看证据驱动、可审批、可回滚的 AIOps Operator"
 date: 2026-08-13
 draft: false
 mermaid: true
-description: "围绕一次真实的 OOMKilled 事故，拆解 AegisOps 如何用「建议权与执行权分离」把大模型诊断收进一条可审批、可回滚、可审计的受控自愈链路。"
+description: "围绕一次受控的 OOMKilled 故障演练，拆解 AegisOps 如何用「建议权与执行权分离」把大模型诊断收进一条可审批、可回滚、可审计的受控自愈链路。"
 tags:
   [
     "Kubernetes",
@@ -24,13 +24,15 @@ build:
 
 **AegisOps** 的定位是一个**面向生产约束的工程实验平台**，核心原则只有一句话：**建议权与执行权分离**。DeepSeek 只负责基于证据提出可被机器校验的候选方案，本身没有 kubeconfig；集群写操作只能经过 Operator 的固定类型化动作，中间隔着确定性策略、方案摘要哈希审批与健康验证。需要先说清楚：本项目目前**不宣称生产可用**，它是一套可以解释、审批、回滚和审计的可靠性控制面，不是已经可以替你值班的系统。
 
-下面不按「功能列表」讲，而是沿着**一次真实的 OOM 事故**走一遍完整链路，说明这套设计到底解决了什么、又在哪里还做不到。
+下面不按「功能列表」讲，而是沿着**一次受控的 OOM 故障演练**走一遍完整链路，说明这套设计到底解决了什么、又在哪里还做不到。
+
+> 说明：图 2–5 是一次**受控演练**（阿里云单节点 k3s，诊断用 `fake` 确定性 provider，未调用真实 DeepSeek、非真实事故）；图 1、图 6–8 的 Grafana / 邮件 / 追踪旁证来自本地 Kind 环境。请勿把 fake 诊断误读为真实模型效果。
 
 ---
 
-## 一次 OOM 事故的完整处置
+## 一次 OOM 故障演练的完整处置
 
-集群里的 `fault-lab` 部署被注入 OOM 故障，容器因 `OOMKilled` 退出。这恰好对应 `fault-lab/imagepullbackoff` 那类案例——从告警到恢复的每一步，都对应一个明确的设计取舍。
+集群里的 `fault-lab` 部署被注入 OOM 故障（分配 512MiB，超过 Pod 256Mi 内存限额），容器因 `OOMKilled` 退出。从告警到恢复的每一步，都对应一个明确的设计取舍。
 
 ```mermaid
 flowchart TD
@@ -59,37 +61,37 @@ _图 1：Grafana「AegisOps 事故响应总览」面板。这是采集时刻的�
 
 ### 2. 证据采集：结论必须挂在证据上
 
-事故进入 `CollectingEvidence` 后，Operator 采集多源证据快照：`ContainerState`、`PodState`、`KubernetesEvent`、`RolloutDiff`。诊断卡给出的方案是 `RollbackDeployment {targetRevision:3}`，`confidence=0.9`——每个结论都要能回溯到某条证据。
+事故进入 `CollectingEvidence` 后，Operator 采集多源证据快照：`ContainerState`、`PodState`、`KubernetesEvent`、`RolloutDiff`。诊断卡给出的方案是 `PatchResourceLimit {container: "faultlab", memoryLimit: "384Mi"}`，`confidence=0.9`——每个结论都要能回溯到某条证据。
 
-![事故详情页的证据面板与诊断卡](02-incident-evidence.png)
-_图 2：事故详情页的证据条目与诊断卡。诊断由 fake 确定性 provider 输出，仅用于验证「证据 → 诊断 → 方案」的链路，不代表真实模型效果。_
+![事故详情页的证据面板与诊断卡](02-incident-evidence.jpg)
+_图 2：事故详情页的证据条目与诊断卡（阿里云 k3s，fake provider）。诊断由 fake 确定性 provider 输出，仅用于验证「证据 → 诊断 → 方案」的链路，不代表真实模型效果。_
 
 ### 3. 模型哪里会错，为什么需要 reviewer
 
-这里是最反直觉的部分。DeepSeek 基于证据产出的候选方案，**在没有二次审查时会漏过危险动作**——后面的真实评估一节会给出具体数字。所以方案在进入策略校验前，先经过一层确定性 reviewer。
+这里是最反直觉的部分。DeepSeek 基于证据产出的候选方案，**在没有二次审查时会漏过危险动作**——后面的真实评估一节会给出具体数字。所以方案在进入策略校验前，先经过一层**模型 Reviewer 的二次审查，再叠加本地确定性合同校验**（category/evidence_ids/proposal 白名单等不依赖模型判断的硬检查）。
 
 ### 4. 中风险动作必须人工审批
 
-`PatchResourceLimit` 属于中风险动作，策略判定 `ApprovalRequired`。审批弹窗展示动作、参数 `{"targetRevision":3}` 与 `planDigest` 前缀。审批绑定的是**不可复用的方案摘要**——方案、目标对象或策略版本任何一处变化，旧审批都会自动失效。
+`PatchResourceLimit` 属于中风险动作，策略判定 `ApprovalRequired`。审批弹窗展示动作、参数 `{"container":"faultlab","memoryLimit":"384Mi"}` 与 `planDigest` 前缀。审批绑定的是**不可复用的方案摘要**——方案、目标对象或策略版本任何一处变化，旧审批都会自动失效。
 
-![人工审批确认弹窗](03-approval-policy.png)
-_图 3：中风险动作的审批弹窗。审批绑定 planDigest，一次审批只覆盖一个确定的方案。_
+![人工审批确认弹窗](03-approval-policy.jpg)
+_图 3：中风险动作的审批弹窗（阿里云 k3s）。审批绑定 planDigest，一次审批只覆盖一个确定的方案。_
 
 ### 5. 类型化执行与健康验证
 
 审批通过后进入执行：`Preflight → Snapshot → Apply`，随后是健康验证。时间线从 `Detected` 一路走到 `Executing → Verifying → Resolved`，审计链记录 `ApprovalGranted → ExecutionStarted → ExecutionCompleted → IncidentResolved`。
 
-![执行到验证到 Resolved 的时间线](04-execution-resolved.png)
-_图 4：一次 fake 诊断闭环从执行、验证到 Resolved 的完整时间线。该链路验证了控制面的编排能力，不构成真实 AI 修复证明。_
+![执行到验证到 Resolved 的时间线](04-execution-resolved.jpg)
+_图 4：一次 fake 诊断闭环从执行、验证到 Resolved 的完整时间线（阿里云 k3s）。该链路验证了控制面的编排能力，不构成真实 AI 修复证明。_
 
-### 6. 失败回滚与审计哈希链
+### 6. 审计哈希链（回滚路径是独立能力，本次 OOM 未触发）
 
-验证失败时会回滚到候选 revision。审计事件带 `sequence` 与 `eventHash`，形成连续哈希链，actor 为 `operator` 与脱敏后的 `token-<hex16>`。
+本次 OOM 演练中 `PatchResourceLimit` 通过健康验证后直达 `Resolved`，**未触发回滚**——回滚属于独立能力（如 `RollbackDeployment` / `RestoreConfigMap`），在 Kind full E2E 中有真实证据。审计事件带 `sequence` 与 `eventHash`，形成连续哈希链，actor 为 `operator` 与脱敏后的 `token-<hex16>`。
 
-![回滚与审计链时间线](05-rollback-audit.png)
-_图 5：回滚与审计链时间线卡。审计事件带序列号与事件哈希，形成连续哈希链，用于事后追溯。_
+![审计链时间线](05-rollback-audit.jpg)
+_图 5：审计链时间线卡（阿里云 k3s）。审计事件带序列号与事件哈希，形成连续哈希链，用于事后追溯；本次为 Resolved 路径，无回滚。_
 
-到这里，一次事故的处置闭环走完了。告警邮件、跨组件追踪属于旁路佐证，各放一张：
+到这里，一次演练的处置闭环走完了。告警邮件、跨组件追踪属于旁路佐证，各放一张：
 
 ![FIRING 告警邮件](06-email-warning.png)
 _图 6：本地 MailHog 收到的 FIRING 告警邮件。收件人/发件人为占位地址并已黑条覆盖，这是本地 SMTP smoke，不是真实生产邮件闭环。_
@@ -125,7 +127,7 @@ _图 8：同一 trace 内包含 Operator 与 Diagnosis API 的跨组件 span，�
 
 ## 真实 DeepSeek 评估：reviewer 到底拦住了什么
 
-模型评估与前面的 UI 截图是**两个不同口径**，必须分开看：图 1–9 是 fake 确定性 provider 驱动的控制面链路验证；下面才是真实 DeepSeek 的模型质量评估。
+模型评估与前面的 UI 截图是**两个不同口径**，必须分开看：图 1–8 是 fake 确定性 provider 驱动的控制面链路验证；图 10 才是真实 DeepSeek 的模型质量评估。
 
 在语义有效的 **36 case** 数据集上（6 类故障 × clean/noisy/sparse，A/B/C/D 共 144 arm），r5 初始四臂单次运行的结果：
 
@@ -199,7 +201,7 @@ make smoke CONTEXT=kind-aegisops-dev
 
 - **预计资源与耗时**：`make verify` 数分钟；完整 Kind full E2E（`scripts/e2e-up.sh` + `scripts/run-e2e.sh`）约 15–30 分钟，需要可用的 kind/k3s 环境。
 - **fake 模式能验证什么、不能验证什么**：`LLM_PROVIDER=fake` 是确定性测试替身，能验证「告警 → 证据 → 诊断 → 策略 → 执行 → 验证 → 回滚」这条**控制面链路可执行**；它**不能**代表任何模型质量，真实 DeepSeek 评估需单独跑（会调用真实 API，需提供 Key 并确认费用）。
-- **可下载产物**：GitHub Release 提供 Helm Chart（`dist/aegisops-0.2.0.tgz`）与 SBOM；镜像 tag `0.2.0`（`ghcr.io/user27c/aegisops-*`，amd64/arm64 多架构，本发布未推送 `latest`）。
+- **可下载产物**：GitHub Release 提供 Helm Chart（`aegisops-0.2.0.tgz`）与 5 份 SPDX SBOM 附件（`sbom-<image>-0.2.0.spdx.json`）；镜像 tag `0.2.0`（`ghcr.io/user27c/aegisops-*`，amd64/arm64 多架构，本发布未推送 `latest`）。
 - **最终代码 SHA 对应的 CI**：代码冻结 `bd9b93a`，发布前修复代码截止 `ba5609b`，最终 tag `v0.2.0` 指向 `a9dbace`；对应的 GitHub Actions Kind E2E 运行见 [release 清单](https://github.com/user27c/aegisops/blob/main/docs/release/v0.2.0-checklist.md)。
 
 ---
