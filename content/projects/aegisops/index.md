@@ -199,8 +199,8 @@ make smoke CONTEXT=kind-aegisops-dev
 
 - **预计资源与耗时**：`make verify` 数分钟；完整 Kind full E2E（`scripts/e2e-up.sh` + `scripts/run-e2e.sh`）约 15–30 分钟，需要可用的 kind/k3s 环境。
 - **fake 模式能验证什么、不能验证什么**：`LLM_PROVIDER=fake` 是确定性测试替身，能验证「告警 → 证据 → 诊断 → 策略 → 执行 → 验证 → 回滚」这条**控制面链路可执行**；它**不能**代表任何模型质量，真实 DeepSeek 评估需单独跑（会调用真实 API，需提供 Key 并确认费用）。
-- **可下载产物**：GitHub Release 提供 Helm Chart（`dist/aegisops-0.2.0.tgz`）与 SBOM；镜像 tag `v0.2.0`（`ghcr.io/user27c/aegisops-*`，本发布未推送 `latest`）。
-- **最终代码 SHA 对应的 CI**：代码冻结 `bd9b93a`，文档冻结 `4f89b60`；对应的 GitHub Actions Kind E2E 运行见 [release 清单](https://github.com/user27c/aegisops/blob/main/docs/release/v0.2.0-checklist.md)。
+- **可下载产物**：GitHub Release 提供 Helm Chart（`dist/aegisops-0.2.0.tgz`）与 SBOM；镜像 tag `0.2.0`（`ghcr.io/user27c/aegisops-*`，amd64/arm64 多架构，本发布未推送 `latest`）。
+- **最终代码 SHA 对应的 CI**：代码冻结 `bd9b93a`，发布前修复最终提交 `ba5609b`（tag `v0.2.0`）；对应的 GitHub Actions Kind E2E 运行见 [release 清单](https://github.com/user27c/aegisops/blob/main/docs/release/v0.2.0-checklist.md)。
 
 ---
 
