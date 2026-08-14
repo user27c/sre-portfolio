@@ -67,30 +67,21 @@ _图 0：演练完成态控制台（阿里云 k3s，fake provider）。展示从
 系统由 Alert Gateway、AIOps Controller、Diagnosis Service 与 PostgreSQL 证据库组成：
 
 ```mermaid
-flowchart LR
-  subgraph SIGNAL["1. 信号与证据捕获"]
-    AM["Alertmanager"] --> GW["Alert Gateway\n指纹去重收敛"]
-    GW --> CR["AIOpsIncident CR\n状态机唯一事实源"]
-    CR --> EV["多源证据采集\nK8s / PromQL / Loki"]
-  end
-
-  subgraph ADVISORY["2. 建议面（无集群写权限）"]
-    EV --> RAG["Runbook RAG"]
-    RAG --> LLM["DeepSeek 或\n确定性 Fake"]
-    LLM --> RV["Reviewer 审查 +\n本地确定性合同校验"]
-  end
-
-  subgraph CONTROL["3. 确定性控制面与执行闭环"]
-    RV --> POL["RemediationPolicy\n确定性策略校验"]
-    POL -->|"Medium Risk"| AP["人工审批门禁\nplanDigest 绑定 + TTL"]
-    POL -->|"Low Risk"| EX["Typed Executor\nPreflight/Snapshot/Apply"]
-    AP --> EX
-    EX --> VF["健康验证 Verifier"]
-    VF -->|"Pass"| OK["Incident Resolved"]
-    VF -->|"Fail"| RB["原子回滚 Rollback"]
-    EX --> AU["审计日志\nSHA-256 哈希链"]
-    VF --> AU
-  end
+flowchart TD
+    ALERT["Alertmanager 告警"] -->|Webhook| DEDUP["指纹去重"]
+    DEDUP --> INCIDENT["创建 AIOpsIncident（状态机唯一事实源）"]
+    INCIDENT --> EVIDENCE["多源证据快照（K8s / PromQL / LogQL）"]
+    EVIDENCE --> RAG["RAG 检索 Runbook"]
+    RAG --> DIAG["DeepSeek 诊断（无集群写权限）"]
+    DIAG --> REVIEW["Reviewer 二次审查"]
+    REVIEW --> POLICY["确定性 Policy 校验"]
+    POLICY -->|低风险| AUTO["自动放行"]
+    POLICY -->|中风险| APPROVAL["人工审批（planDigest 绑定）"]
+    AUTO --> EXEC["Typed Action（Preflight/Snapshot/Apply）"]
+    APPROVAL --> EXEC
+    EXEC --> VERIFY["健康验证"]
+    VERIFY -->|通过| RESOLVED["Resolved"]
+    VERIFY -->|失败| ROLLBACK["Rollback"]
 ```
 
 ---
