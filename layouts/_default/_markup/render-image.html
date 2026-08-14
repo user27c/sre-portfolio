@@ -1,17 +1,26 @@
 {{- $alt := .Text | plainify -}}
 {{- with .Page.Resources.GetMatch .Destination -}}
-  {{- $image := . -}}
-  {{- if gt .Width 1600 -}}
-    {{- $image = .Resize "1600x webp q90" -}}
+  {{- if eq .MediaType.SubType "svg" -}}
+    <img
+      src="{{ .RelPermalink }}"
+      alt="{{ $alt }}"
+      loading="lazy"
+      decoding="async"
+      {{- with $.Title }} title="{{ . }}"{{ end }}>
+  {{- else -}}
+    {{- $image := . -}}
+    {{- if gt .Width 1600 -}}
+      {{- $image = .Resize "1600x webp q90" -}}
+    {{- end -}}
+    <img
+      src="{{ $image.RelPermalink }}"
+      width="{{ $image.Width }}"
+      height="{{ $image.Height }}"
+      alt="{{ $alt }}"
+      loading="lazy"
+      decoding="async"
+      {{- with $.Title }} title="{{ . }}"{{ end }}>
   {{- end -}}
-  <img
-    src="{{ $image.RelPermalink }}"
-    width="{{ $image.Width }}"
-    height="{{ $image.Height }}"
-    alt="{{ $alt }}"
-    loading="lazy"
-    decoding="async"
-    {{- with $.Title }} title="{{ . }}"{{ end }}>
 {{- else -}}
   <img
     src="{{ .Destination | safeURL }}"

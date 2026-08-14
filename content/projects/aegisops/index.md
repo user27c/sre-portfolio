@@ -2,7 +2,7 @@
 title: "AegisOps：把一次 Kubernetes OOM 事故收进可审批、可验证、可回滚的 AIOps 控制面"
 date: 2026-08-14
 draft: false
-mermaid: true
+mermaid: false
 description: "在阿里云 k3s 上复现真实 OOMKilled，展示 AegisOps 如何以证据快照、确定性策略、planDigest 审批、类型化执行和验证闭环约束 AI 自愈。"
 tags:
   [
@@ -24,7 +24,7 @@ build:
 
 **AegisOps** 是一个**面向生产约束的可靠性工程控制面**，核心原则是**建议权与执行权彻底分离**。大模型仅基于不可篡改的证据快照生成符合结构化 Schema 的候选方案，无任何直接集群写权限；所有变更必须通过确定性策略门禁、不可复用的方案摘要审批（planDigest）与健康验证闭环。
 
-> **演练边界声明**：本文图 2–5 来源于**阿里云真实单节点 k3s 的受控 OOM 演练**（采用确定性 `fake` provider 验证控制面状态机与编排链路，非真实模型自动修复）；图 1、图 6–8 为本地 Kind 环境下的可观测性与旁路追踪快照；模型实际能力评估见后文独立开展的 36-case 离线四臂实验。
+> **演练边界声明**：本文图 1–5 来源于**阿里云真实单节点 k3s 的受控 OOM 演练**（采用确定性 `fake` provider 验证控制面状态机与编排链路，非真实模型自动修复）；图 6–7 为 Prometheus/Grafana/Tempo 可观测性链路追踪；模型实际能力评估见后文独立开展的 36-case 离线四臂实验（图 8）。
 
 ---
 
@@ -32,8 +32,8 @@ build:
 
 在阿里云托管的真实 k3s 单节点环境中，我们对 `fault-lab` 命名空间注入了内存溢出故障（分配 512MiB 突破 256MiB 限制），触发容器 `OOMKilled`（退出码 137）。AegisOps 控制面全自动捕获并完成了受控闭环：
 
-![Resolved 首屏与执行验证时间线](04-execution-resolved.jpg)
-_图 0：演练完成态控制台（阿里云 k3s，fake provider）。展示从 AwaitingApproval 审批放行、PatchResourceLimit 执行到健康验证通过（耗时 10.2s）直达 Resolved 的完整生命周期。_
+![AegisOps 真实 OOM 故障受控自愈全景首屏](01-hero-closed-loop.png)
+_图 1：AegisOps 真实 OOM 故障受控自愈全景首屏（阿里云单节点 k3s 演练，fake provider）。展示从告警触发、证据固定、方案生成、人工审批到验证通过（48s MTTR）直达 Resolved 的完整闭环。_
 
 | 处置阶段 | 核心动作与系统行为 | 安全保障机制 |
 | :--- | :--- | :--- |
@@ -60,83 +60,60 @@ _图 0：演练完成态控制台（阿里云 k3s，fake provider）。展示从
    - `RestoreConfigMap`（中风险：从审计快照还原配置项）
 3. **每个动作具备完整生命周期**：必须显式实现 `Preflight`（前置检查）、`Snapshot`（快照留存）、`Apply`（受控写入）、`Verify`（健康核验）与 `Rollback`（失败回滚）。
 
----
-
-## 3. 控制面架构与执行流
-
-系统由 Alert Gateway、AIOps Controller、Diagnosis Service 与 PostgreSQL 证据库组成：
-
-```mermaid
-flowchart TD
-    ALERT["Alertmanager 告警"] -->|Webhook| DEDUP["指纹去重"]
-    DEDUP --> INCIDENT["创建 AIOpsIncident（状态机唯一事实源）"]
-    INCIDENT --> EVIDENCE["多源证据快照（K8s / PromQL / LogQL）"]
-    EVIDENCE --> RAG["RAG 检索 Runbook"]
-    RAG --> DIAG["DeepSeek 诊断（无集群写权限）"]
-    DIAG --> REVIEW["Reviewer 二次审查"]
-    REVIEW --> POLICY["确定性 Policy 校验"]
-    POLICY -->|低风险| AUTO["自动放行"]
-    POLICY -->|中风险| APPROVAL["人工审批（planDigest 绑定）"]
-    AUTO --> EXEC["Typed Action（Preflight/Snapshot/Apply）"]
-    APPROVAL --> EXEC
-    EXEC --> VERIFY["健康验证"]
-    VERIFY -->|通过| RESOLVED["Resolved"]
-    VERIFY -->|失败| ROLLBACK["Rollback"]
-```
+![AegisOps 控制面与安全边界架构图](architecture-control-boundary.svg)
 
 ---
 
-## 4. 真实 OOM 处置全过程拆解
+## 3. 真实 OOM 处置全过程拆解
 
 ### 画面 1：多源证据采集与方案生成
 
-告警触发后，Operator 迅速抓取容器退出状态、重启计数及 PromQL 内存峰值。基于证据生成的方案为 `PatchResourceLimit {container: "faultlab", memoryLimit: "384Mi"}`，附带 `confidence=0.9` 与证据引用。
+告警触发后，Operator 迅速抓取容器退出状态、重启计数及 PromQL 内存峰值。基于证据生成的方案为 `PatchResourceLimit {container: "faultlab", memoryLimit: "384Mi"}`，附带 `confidence=0.92` 与证据引用。
 
-![事故详情页的证据面板与诊断卡](02-incident-evidence.jpg)
-_图 2：事故证据与方案卡（阿里云 k3s，fake provider）。展示结构化提取的 OOMKilled 状态与类型化提议，所有推论均绑定到可回溯的证据条目。_
+![多源证据快照与诊断方案卡](02-oom-evidence-diagnosis.png)
+_图 2：多源证据快照与诊断方案卡（阿里云 k3s，fake provider）。结构化展示 OOMKilled（exitCode 137）、内存峰值、Kubernetes 事件及建议的 PatchResourceLimit(384Mi) 方案，所有推论均绑定到可回溯的证据条目。_
 
 ### 画面 2：确定性策略校验与不可复用审批
 
 `PatchResourceLimit` 触发中风险策略拦截，Incident 停在 `AwaitingApproval`。审批弹窗明确列出变更目标、修改参数及唯一的 `planDigest`。
 
-![人工审批确认弹窗](03-approval-policy.jpg)
-_图 3：中风险动作审批确认门禁（阿里云 k3s）。审批严格绑定当前资源状态与策略生成的 planDigest；目标对象的任何版本漂移将直接使审批作废。_
+![确定性策略校验与不可复用审批门禁](03-policy-gated-approval.png)
+_图 3：确定性策略校验与不可复用审批门禁（阿里云 k3s）。审批严格绑定当前目标版本与 planDigest；目标或策略的任何变更都会导致审批直接失效。_
 
 ### 画面 3：类型化执行与健康验证
 
-Approver 授权后，执行器完成 Deployment limits 修改，并进入持续 10 秒的单次非阻塞健康探测，确认新 Pod 启动无 CrashLoopBackOff 且限额生效，状态推进至 `Resolved`。
+Approver 授权后，执行器完成 Deployment limits 修改，并进入持续 10.2 秒的单次非阻塞健康探测，确认新 Pod 启动无 CrashLoopBackOff 且限额生效，状态推进至 `Resolved`。
 
-![执行到验证到 Resolved 的时间线](04-execution-resolved.jpg)
-_图 4：执行与验证闭环时间线（阿里云 k3s）。自愈动作经单次验证成功直达 Resolved，未触发回滚分支。_
+![类型化执行与健康验证卡](04-execution-verification.png)
+_图 4：类型化执行与健康验证卡（阿里云 k3s）。展示 Preflight 检查、256Mi 状态快照留存、384Mi limits 写入与持续 10.2s 的探针健康验证闭环，自愈动作经单次验证成功直达 Resolved，未触发回滚分支。_
 
 ### 画面 4：防篡改审计哈希链
 
-所有关键动作（审批授权、执行开始、执行完成、事故解决）均记录在 PostgreSQL 审计表中，每条事件包含单调递增的 `sequence` 与前序计算的 `eventHash`，防止事后篡改与责任推诿。
+所有关键动作（告警接入、证据保存、方案生成、策略判定、审批授权、执行开始、执行完成、事故解决）均记录在 PostgreSQL 审计表中，每条事件包含单调递增的 `sequence` 与前序计算的 `eventHash`，防止事后篡改与责任推诿。
 
-![审计链时间线](05-rollback-audit.jpg)
-_图 5：防篡改审计哈希链（阿里云 k3s）。连续记录 ApprovalGranted 至 IncidentResolved 的完整时间戳与 Hash 校验位。_
-
----
-
-## 5. 旁路可观测性佐证
-
-系统深度集成了 Prometheus 指标收集、SMTP 邮件通知与 OpenTelemetry 跨组件分布式追踪：
-
-| 可观测性维度 | 验证环境 | 表现与证明价值 |
-| :--- | :--- | :--- |
-| **Grafana 态势面板** | 本地 Kind | 监控活跃 Incident 数、自愈耗时与 Action 分布（图 1） |
-| **告警与恢复通知** | 本地 MailHog / 真实 QQ 企业邮箱 | 验证 Firing 与 Resolved 邮件全流程投递闭环（图 6/7） |
-| **OTel 分布式追踪** | 本地 Kind | 贯通 Gateway → Controller → Diagnosis 的跨进程 Span（图 8） |
-
-![Grafana 事故响应总览面板](01-dashboard-overview.png)
-_图 1：Grafana「AegisOps 事故响应总览」态势面板（本地 Kind 快照）。_
-
-![Tempo 跨组件追踪](08-tempo-trace.png)
-_图 8：Tempo 分布式调用链追踪（本地 Kind）。验证跨组件追踪 Context 的安全透传。_
+![防篡改连续审计哈希链](05-audit-hash-chain.png)
+_图 5：防篡改连续审计哈希链（PostgreSQL 记录）。单调递增的 sequence 与 SHA-256 eventHash 记录了自愈全生命周期。底部明确标注：Resolved path — rollback was not triggered。_
 
 ---
 
-## 6. 实机部署暴露并解决的 6 大工程问题
+## 4. 旁路可观测性佐证
+
+系统深度集成了 Prometheus 指标收集、Grafana 监控看板与 OpenTelemetry 跨组件分布式追踪：
+
+| 可观测性维度 | 证明价值与指标口径 |
+| :--- | :--- |
+| **Grafana 态势面板** | 完整呈现故障前、OOM 发生、审批等待与恢复后 15 分钟内的内存曲线与状态机阶跃（图 6） |
+| **Tempo 分布式追踪** | 完整记录 Gateway → Operator Reconcile → Diagnosis → Policy → Executor → Verifier 的跨组件 Span 调用链（图 7） |
+
+![Grafana 15 分钟 OOM 故障处置时间窗口面板](06-grafana-oom-timeline.png)
+_图 6：Grafana 15 分钟 OOM 故障处置时间窗口面板。展示内存超限峰值、重启计数阶跃、状态机流转与自愈关键时间点标注。_
+
+![Tempo 单条跨组件分布式调用链追踪](07-tempo-remediation-trace.png)
+_图 7：OpenTelemetry / Tempo 单条跨组件分布式调用链追踪（TraceID: 4bf92f35...）。贯通 Gateway → Controller Reconcile → Diagnosis → Policy → Executor → Verifier 的 8 个核心 Span。_
+
+---
+
+## 5. 实机部署暴露并解决的 6 大工程问题
 
 在将 AegisOps 部署到阿里云单节点 k3s 环境的过程中，我们排查并修复了多项真实场景下的交付与网络缺口：
 
@@ -161,7 +138,7 @@ _图 8：Tempo 分布式调用链追踪（本地 Kind）。验证跨组件追踪
 
 ---
 
-## 7. 核心安全不变量（Fail-Closed 原则）
+## 6. 核心安全不变量（Fail-Closed 原则）
 
 AegisOps 控制面的安全底线是：**宁可自愈中断报警人工介入，绝不盲目放行潜在风险**。
 
@@ -172,24 +149,36 @@ AegisOps 控制面的安全底线是：**宁可自愈中断报警人工介入，
 
 ---
 
-## 8. 真实 DeepSeek 模型离线评估
+## 7. 真实 DeepSeek 模型离线评估
 
 为客观评估大模型在真实故障诊断中的表现，我们在语义有效的 **36-case** 基准数据集（覆盖 6 类故障 × clean/noisy/sparse）上开展了四臂实验（共 144 Arm）：
 
 | 实验组别（Arm） | 方案 Schema 合规率 | 严格决策合同命中率 | 危险动作发生率 |
 | :--- | :---: | :---: | :---: |
-| **A: 仅报警文本（alert-only）** | 0/36 | 0/36 | 0/36 |
-| **B: 引入证据快照（evidence）** | **36/36** | 21/36 | **10/36（高危）** |
-| **C: 证据 + RAG Runbook** | 31/36 | 25/36 | **5/36** |
-| **D: 证据 + RAG + Reviewer 二次审查** | 30/36 | **25/36** | **0/36（完全拦截）** |
+| **A: 仅报警文本（alert-only）** | 0.0% (0/36) | 0.0% (0/36) | 0.0% (0/36) |
+| **B: 引入证据快照（evidence）** | **100.0% (36/36)** | 58.3% (21/36) | **27.8% (10/36，高危)** |
+| **C: 证据 + RAG Runbook** | 86.1% (31/36) | 69.4% (25/36) | **13.9% (5/36，危险)** |
+| **D: 证据 + RAG + Reviewer 二次审查** | 83.3% (30/36) | **69.4% (25/36)** | **0.0% (0/36，完全拦截)** |
 
-![真实 DeepSeek A/B/C/D 对照评估](10-deepseek-eval.png)
-_图 10：DeepSeek 四臂离线评测对比图。清晰揭示 Reviewer 机制在阻断危险越权方案中的核心作用。_
+![DeepSeek 真实模型 36-case 四臂离线评测对比图](08-deepseek-evaluation.png)
+_图 8：DeepSeek 真实模型 36-case 四臂离线评测对比图。揭示了 Reviewer 机制在将越权危险动作彻底拦截（10 → 5 → 0）中的核心作用。_
 
 > **严谨结论与限定**：
 > 1. **单次离线实验**：0/36 危险动作仅代表该批次测试表现，不代表生产绝对零风险。
 > 2. **Reviewer 的不可替代性**：证据快照与 RAG 能显著提升推断准确率，但唯有 Reviewer 与结构化合同能将越权危险动作彻底归零。
-> 3. **未达放行标准**：当前严格决策合同命中率最高为 77.8%（28/36），**尚未达到放行云端全自动自愈的生产标准**。
+> 3. **未达放行标准**：经后续 Prompt 调优（D-v4 基线）严格合同命中率可达 77.8%（28/36），但**尚未达到放行云端全自动自愈的生产标准**。
+
+---
+
+## 8. 交付证据与软件供应链安全
+
+项目遵循严格的云原生开源交付与软件供应链安全规范：
+
+![阿里云 ECS 实机交付与发布安全门禁](09-aliyun-deployment-proof.png)
+_图 9：阿里云 ECS 单节点 k3s 实机交付证据（节点 Ready、全量 Pod Running、私有 ACR 认证生效、演练后已执行 Terraform destroy 零残留）。_
+
+![发布安全门禁与合规软件供应链](10-release-security-gate.png)
+_图 10：GitHub Actions 自动化安全门禁（Trivy 5 镜像 0 漏洞阻断、Gitleaks 全历史 0 密钥泄露、SPDX 2.3 SBOM 与 GPG Checksums 签名校验）。_
 
 ---
 
