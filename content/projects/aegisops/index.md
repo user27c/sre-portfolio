@@ -1,6 +1,6 @@
 ---
 title: "AegisOps：把一次 Kubernetes OOM 事故收进可审批、可验证、可回滚的 AIOps 控制面"
-date: 2026-08-15
+date: 2026-08-15T05:22:00+08:00
 draft: false
 mermaid: false
 description: "在阿里云 k3s 上复现真实 OOMKilled，展示 AegisOps 如何以证据快照、确定性策略、planDigest 审批、类型化执行和验证闭环约束 AI 自愈。"
