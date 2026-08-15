@@ -45,7 +45,7 @@ Detected → CollectingEvidence → Diagnosing → PolicyChecking → AwaitingAp
 
 ## 2. 真实 OOM 故障注入与多源证据链采集
 
-在 `fault-lab` 命名空间中，我们对 `faultlab` 工作负载（内存限制 `256Mi`）注入了平缓内存爬升故障（每 5 秒分配并触碰 28MiB 物理页）。当容器内存工作集触碰 cgroup 限额时，Linux 内核立即终止进程并由 kubelet 记录退出事实。
+在 `fault-lab` 命名空间中，我对 `faultlab` 工作负载（内存限制 `256Mi`）注入了平缓内存爬升故障（每 5 秒分配并触碰 28MiB 物理页）。当容器内存工作集触碰 cgroup 限额时，Linux 内核立即终止进程并由 kubelet 记录退出事实。
 
 Operator 的证据采集器（只读模式）迅速捕获多源不可变证据快照：
 - **Kubernetes 核心证据**：`containerStatuses.lastState.terminated: {reason: "OOMKilled", exitCode: 137}`，累计重启次数跃迁为 1。
