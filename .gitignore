@@ -18,3 +18,16 @@ public/
 
 # Specific files to ignore
 CURSOR-FLCLASH-稳定用法.md
+
+# AI Agent & Assistant 本地配置与指令（仅本地保留）
+AGENTS.md
+CLAUDE.md
+.agents/
+.codex/
+.cursor/
+.cursorrules
+.claude/
+.gemini/
+.antigravity/
+.ai/
+
