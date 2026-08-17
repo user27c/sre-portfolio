@@ -1,9 +1,9 @@
 ---
-title: "AegisOps：把一次 Kubernetes OOM 事故收进可审批、可验证、可回滚的 AIOps 控制面"
+title: "AegisOps：我如何把 Kubernetes OOM 修复做成可审批的控制面"
 date: 2026-08-15T05:22:00+08:00
 draft: false
 mermaid: false
-description: "在阿里云 k3s 上复现真实 OOMKilled，展示 AegisOps 如何以证据快照、确定性策略、planDigest 审批、类型化执行和验证闭环约束 AI 自愈。"
+description: "一次真实阿里云 k3s OOMKilled 演练：从证据采集、策略审批到类型化修复，并如实记录 fake 诊断、源告警未恢复等边界。"
 tags:
   [
     "Kubernetes",
@@ -20,164 +20,169 @@ build:
   publishResources: false
 ---
 
-把大模型的自然语言直接喂给 `kubectl` 执行自动修复，在生产环境中存在致命隐患：模型缺乏集群写权限边界、文本不可审计，且结构性幻觉无法通过提示词调优根除。
+让大模型直接生成并执行 `kubectl`，最大的问题不是“回答偶尔不准”，而是它绕过了变更审批、权限边界、幂等控制和失败回滚。
 
-**AegisOps** 是一个**面向生产约束的可靠性工程控制面**，核心原则是**建议权与执行权彻底分离**。大模型仅基于不可篡改的证据快照生成符合结构化 Schema 的候选方案，无任何直接集群写权限；所有变更必须通过确定性策略门禁、不可复用的方案摘要审批（planDigest）与健康验证闭环。
+我为此实现了 **AegisOps**：模型只能基于只读证据提出结构化候选方案；是否执行、能改什么、参数是否越界，全部由 Kubernetes Operator 中的确定性代码决定。
 
-> **实机演练声明**：本文 6 张图均截取自**阿里云杭州区真实单节点 k3s（v1.31.5+k3s1）上的受控 OOM 演练现场**。展示从真实故障注入、只读证据链采集、AI 诊断、确定性策略门禁、SRE 显式审批、类型化动作写入、健康核验到 `Resolved` 状态收敛的完整闭环。
+[查看源码](https://github.com/user27c/aegisops) · [v0.2.0 Release](https://github.com/user27c/aegisops/releases/tag/v0.2.0) · [云端演练报告](https://github.com/user27c/aegisops/blob/main/docs/cloud-oom-reshoot.md)
+
+| 这次演练回答的问题 | 实测结果 |
+| --- | --- |
+| 故障是否真实？ | Kubernetes 记录 `OOMKilled`、`exitCode=137`、`restartCount=1` |
+| AI 能否直接修改集群？ | 不能；Diagnosis 服务没有 Kubernetes 写权限 |
+| 中风险动作如何放行？ | `ApprovalRequired`，审批绑定不可复用的 `planDigest` |
+| 实际修改了什么？ | `PatchResourceLimit`：`256Mi → 384Mi` |
+| 修复是否被验证？ | 新 Pod Ready，连续两次健康检查成功，Incident 进入 `Resolved` |
+| 是否证明 DeepSeek 可自动修复？ | 否；本次云端演练使用 fake provider，真实模型另行评估 |
+
+> **边界声明**：这是受控工程演练，不是生产可用声明。截图时修复状态已为 `Resolved`，但源告警仍是 `firing`；控制台明确显示一致性警告。
 
 ---
 
-## 1. 事故概览：控制面事故总览与状态机
+## 1. 从一次真实 OOM 开始
 
-在真实的 Kubernetes 生产环境中，警报风暴常常导致运维人员迷失在海量重复告警中。AegisOps 告警网关在接收到 Alertmanager 触发的 `ContainerOOMKilled` 告警后，首先根据指纹进行防风暴收敛，去重生成全局唯一的 `AIOpsIncident` 自定义资源。
+我在阿里云杭州区单节点 k3s 上部署 AegisOps 和 `fault-lab`。目标容器限制为 `256Mi`，故障注入器每 5 秒分配并触碰 28MiB 物理页，约 50 秒后触发 cgroup OOM。
+
+Alertmanager 告警进入 Gateway 后，系统按指纹去重并创建唯一的 `AIOpsIncident`。状态机不在一个 Reconcile 中等待模型，而是通过多次幂等 Reconcile 推进。
 
 ![AegisOps Incident 事故列表](01-aegisops-incident-list.png)
-_图 1：AegisOps 控制台事故列表。集群标识 `aliyun-cn-hangzhou-k3s`，清晰展示严重级别（critical）、目标工作负载（`Deployment/faultlab`）、当前所处阶段（`AwaitingApproval`）与推荐处置动作（`PatchResourceLimit`）。_
-
-整个自愈过程由 Kubernetes CRD 状态机驱动，严格遵循单向递进的阶段转移：
+_图 1：Incident 列表展示集群、严重级别、目标、阶段和候选动作。原图保留完整 1440×900 浏览器现场。_
 
 ```text
-Detected → CollectingEvidence → Diagnosing → PolicyChecking → AwaitingApproval → Executing → Verifying → Resolved
+Detected → CollectingEvidence → Diagnosing → PolicyChecking
+         → AwaitingApproval → Executing → Verifying → Resolved
 ```
 
 ---
 
-## 2. 真实 OOM 故障注入与多源证据链采集
+## 2. 先限制 AI，再谈自动修复
 
-在 `fault-lab` 命名空间中，我对 `faultlab` 工作负载（内存限制 `256Mi`）注入了平缓内存爬升故障（每 5 秒分配并触碰 28MiB 物理页）。当容器内存工作集触碰 cgroup 限额时，Linux 内核立即终止进程并由 kubelet 记录退出事实。
+AegisOps 的关键不是提示词，而是权限和数据流。DeepSeek/Diagnosis API 不挂载 kubeconfig；`executor` 是唯一拥有受限写权限的组件，HTTP API 也不能直接调用它。
 
-Operator 的证据采集器（只读模式）迅速捕获多源不可变证据快照：
-- **Kubernetes 核心证据**：`containerStatuses.lastState.terminated: {reason: "OOMKilled", exitCode: 137}`，累计重启次数跃迁为 1。
-- **Kubernetes 事件**：容器拉取、启动及 PodReady 状态事件。
-- **可观测性时序证据**：Prometheus 抓取的阶梯内存曲线与 cAdvisor 指标。
+系统只接受 5 个 Typed Action：`RestartWorkload`、`ScaleDeployment`、`PatchResourceLimit`、`RollbackDeployment` 和 `RestoreConfigMap`。模型不能生成 Shell、kubectl 或通用 Patch。
+
+```text
+Alertmanager → Incident CR → Evidence Collector → Diagnosis API (read-only)
+                                      ↓
+Executor ← Approval ← Policy Engine ← Typed Proposal
+   ↓
+Snapshot → Apply → Verify → Resolved / Rollback
+```
+
+无匹配 Policy、证据不足、关键审计不可用、目标锁丢失或验证条件不明确时，系统都会 fail closed，而不是“尽量执行”。
+
+---
+
+## 3. 证据先于结论
+
+Operator 采集 Kubernetes 容器状态、Pod 状态、事件、Prometheus 指标和 Loki 日志，并对规范化后的证据快照计算内容哈希。
+
+本次 OOM 的直接证据来自 Kubernetes：`lastState.terminated.reason=OOMKilled`、`exitCode=137`。诊断结果引用了对应的 `ContainerState` evidence ID，而不是只复述告警标题。
 
 ![AwaitingApproval 详情页与 planDigest 门禁](02-aegisops-awaiting-approval.png)
-_图 2：AwaitingApproval 详情页。多源证据链清晰展示 OOMKilled（exitCode 137）与重启事实；AI 诊断给出置信度 90% 的“内存 limit 低于工作集”结论；推荐动作被确定性策略拦截，进入 `AwaitingApproval` 并锁定唯一的 `planDigest`。_
+_图 2：真实 OOM 证据、诊断结论、medium 风险、ApprovalRequired 和候选 `PatchResourceLimit(384Mi)` 汇总在同一页面。_
 
----
-
-## 3. 旁路可观测性佐证：真实时序与分布式追踪
-
-### ① Grafana 真实 OOM 处置时序
-
-Prometheus 以 1–2 秒的高精采样率完整记录了事故发生前后的时序特征：
+Prometheus 采样到的峰值约为 204 MiB，并没有采到 256 MiB。OOM 发生在两次抓取之间并不矛盾，因此我没有用监控曲线替代 Kubernetes 的终止状态证据。
 
 ![Grafana 真实 OOM 处置时间窗口面板](03-grafana-oom-timeline.png)
-_图 3：真实阿里云 k3s OOM 故障窗口（固定窗口 03:28–03:40）。fault-lab 容器内存工作集与 cgroup Usage 阶梯爬升至采样峰值约 204 MiB，随后在 Kubernetes Evidence 记录的 `lastTermination.reason=OOMKilled / exitCode 137` 事故点后重启并回落至基线；Container Restarts Observed in Window 发生单次跃迁（0 → 1），AegisOps 自动完成证据采集、诊断与策略评估后安全停在 `AwaitingApproval` 待审批阶段。_
+_图 3：固定 03:28–03:40 窗口。内存阶梯上升后回落，容器重启观察值从 0 跃迁为 1，Incident 停在 AwaitingApproval。_
 
-> **专业说明**：Prometheus 监控曲线采样峰值为 204 MiB；OOM 成立的法定直接证据是 Kubernetes 记录的 `lastTermination.reason=OOMKilled` 和 `exitCode=137`。由于 cgroup 瞬时突发超限触发内核杀死 PID 1 的过程发生在毫秒级，采样图真实反映了 Prometheus 抓取周期的客观物理表现。
-
-### ② Tempo 跨组件分布式调用链追踪
-
-AegisOps 内部全面打通 OpenTelemetry 分布式追踪，通过 `incident.name` 串联起全链路异步调用：
+OpenTelemetry Trace 按 `incident.name` 关联异步阶段，而不是制造一条跨人工审批时长的超长 Trace。
 
 ![Tempo 跨服务分布式追踪瀑布图](04-tempo-distributed-traces.png)
-_图 4：AegisOps 分布式追踪（Tempo Trace 瀑布图）。按 `incident.name` 关联告警接入、Kubernetes/Prometheus/Loki 只读证据采集、诊断提交与状态轮询，展示 Operator 与 Diagnosis API 之间跨服务的真实 Span 阶梯与耗时分解（Trace B: 11 Spans / Trace C: 5 Spans）。_
+_图 4：Operator 到 Diagnosis API 的证据采集与诊断提交 Trace（11 Spans），以及诊断轮询与策略推进 Trace（5 Spans）。_
 
 ---
 
-## 4. 确定性策略门禁与不可复用的 planDigest 审批
+## 4. planDigest 如何防止旧审批继续生效
 
-允许大模型直接执行任意代码是系统灾难的根源。AegisOps 设立了两道坚不可摧的安全防线：
+`PatchResourceLimit` 被 Policy 判为 medium 风险，因此必须进入 `AwaitingApproval`。审批对象还会绑定 Incident UID、proposal revision、过期时间和当前方案摘要。
 
-1. **确定性纯逻辑策略门禁（Policy Engine）**：
-   - 严禁 LLM 决定“是否直接执行”。
-   - 策略引擎依据工作负载类型与环境策略（`fault-lab/fault-lab-default`）计算风险。
-   - `PatchResourceLimit` 属于 `medium` 中风险动作，必须强制升级为 `ApprovalRequired`。
-2. **防重放、防篡改的 planDigest**：
-   - 方案摘要哈希由以下字段严格联合计算：
-     $$\text{planDigest} = \text{SHA256}(\text{Action} \parallel \text{Params} \parallel \text{TargetUID} \parallel \text{PolicyRef})$$
-   - 任何针对目标 Deployment 或策略的非受控变更，都会立即导致 Digest 失效，杜绝审批漂移与重放攻击。
+实际参与 `planDigest` 计算的字段如下，而不是简单地对动作名称做哈希：
 
----
+```text
+IncidentUID
+TargetRef + TargetResourceVersion
+Action + canonical Parameters
+PolicyUID + PolicyGeneration
+```
 
-## 5. 人工审批授权与类型化动作（Typed Action）执行
+目标资源、动作参数或策略版本变化后，Operator 会重算摘要并拒绝旧审批。TTL 超过 Policy 允许窗口、摘要不一致或审批过期时，同样不会执行。
 
-SRE 运维专家登录 AegisOps 控制台，审查证据链、诊断报告与参数后，输入审批理由（`SRE核准: 批准扩大内存至384Mi以消除OOM`）并签署同意。
-
-AegisOps Operator 的唯一写操作组件 `executor` 收到合法的 `RemediationApproval` 后，立即启动严格的五步生命周期：
-
-1. **Preflight（前置检查）**：获取目标分布式排他锁（Lease），校验资源版本。
-2. **Snapshot（快照留存）**：记录变更前内存配置（`256Mi`）以便回滚。
-3. **Apply（类型化写入）**：仅通过严格受限的 Kubernetes API 调整 limits：
-   ```json
-   {
-     "container": "faultlab",
-     "memoryLimit": "384Mi"
-   }
-   ```
-4. **Verify（健康核验）**：单次非阻塞探针检测，持续跟踪新 Pod 的 RollingUpdate 进度。
-5. **Rollback（异常回滚）**：若新 Pod 发生 CrashLoop 或探针超时，自动回滚至 Snapshot 快照。
+这能拒绝旧审批重放和审批后的目标漂移，但它不是密码学签名系统；审批身份仍依赖当前 Token 认证实现。
 
 ---
 
-## 6. 健康核验、审计哈希链与 Resolved 状态收敛
+## 5. 从批准到类型化写入
 
-在新 Pod 成功拉起并处于 `1/1 Running` 状态、探针连续返回成功后，Operator 将事故状态置为 `Resolved`，自愈闭环圆满完成。
+我审查证据和参数后批准了 `PatchResourceLimit`。Operator 随后获取目标级 Lease，保存执行前快照，通过固定 Kubernetes API 修改资源，再周期性执行单次健康检查。
 
-![执行生命周期与防篡改审计日志流](05-aegisops-execution-audit.png)
-_图 5：执行生命周期与审计日志流。展示经过 SRE 人工审批（#1 `ApprovalGranted`）、Operator 启动执行（#2 `ExecutionStarted`）、内存调整写入（#3 `ExecutionCompleted`）到最终恢复（#4 `IncidentResolved`）的完整审计事件流，每个事件均持有不可伪造的 `eventHash`。_
+```json
+{
+  "container": "faultlab",
+  "memoryLimit": "384Mi"
+}
+```
+
+Verifier 本身不 sleep 或轮询。Controller 每 15 秒重新入队，要求连续两次健康检查成功后才进入 `Resolved`；超出验证窗口则进入 `RollingBack`。
+
+![执行与审计日志流](05-aegisops-execution-audit.png)
+_图 5：PostgreSQL 审计流记录 ApprovalGranted、ExecutionStarted、ExecutionCompleted 和 IncidentResolved。_
+
+这张图也暴露了一个真实缺口：当时 Console DTO 没有提供 Preflight、Snapshot 和 Apply 的结构化引用，因此对应卡片显示 `Unavailable`。审计事件证明阶段发生，但 UI 仍需补齐这些字段。
+
+审计事件通过 `previous_hash` 和 `event_hash` 串联，可以检测链断点。它没有外部签名或可信时间戳，所以准确表述是 tamper-evident，而不是“不可伪造”。
+
+---
+
+## 6. Resolved 不等于所有信号都已恢复
+
+新 Pod 进入 `1/1 Running`，内存限制变为 `384Mi`，连续健康检查通过后，`AIOpsIncident` 进入 `Resolved`。
 
 ![最终 Resolved 事故详情页](06-aegisops-resolved-overview.png)
-_图 6：最终 Resolved 状态详情页。状态机全部点亮（绿色闭环）；健康核验标记 `Healthy`；Deployment 内存上限已成功在集群中提升为 `384Mi`。_
+_图 6：修复状态 Resolved，同时页面显示源信号仍为 firing、resolvedAt 未提供的一致性警告。_
+
+截图中的警告不是装饰：Alertmanager 尚未发送 resolved 通知，因此不能把这次演练写成“告警已完全恢复”。它证明的是受控写入与健康验证闭环，而不是源信号闭环。
+
+| 已证明 | 尚未证明 |
+| --- | --- |
+| 真实 OOM、审批、资源修改与健康验证 | 多节点高可用、长期容量与故障域隔离 |
+| 模型没有 Kubernetes 写权限 | 静态 Token 满足企业身份治理 |
+| 旧摘要审批会失效 | 审计链具备外部签名或可信时间戳 |
+| fake provider 下控制面链路可运行 | DeepSeek 已达到云端自动修复放行线 |
+
+演练结束后，Terraform 管理的 ECS、VPC、vSwitch、安全组、密钥对和公网地址均已销毁。
 
 ---
 
-## 7. 核心架构安全原则（Fail-Closed 模型）
+## 7. 工程门禁、模型评估与复现
 
-AegisOps 将安全底线刻在架构设计中：**宁可自愈中断报警人工介入，绝不盲目放行潜在风险**。
+v0.2.0 的隔离 Kind full E2E 覆盖 9 个顶层场景，耗时 901.6 秒；Go 关键包覆盖率为 controller 80.2%、executor 80.0%、policy 92.7%。
 
-```
-                   +-----------------------------+
-                   |  Alertmanager / Prometheus  |
-                   +--------------+--------------+
-                                  | (Webhook)
-                                  v
-+-----------------------------------------------------------------+
-| AegisOps 控制面 (Kubernetes Operator)                           |
-|                                                                 |
-|  1. 证据采集器 (Read-Only)  --> 抓取 K8s / Prom / Loki 证据快照   |
-|  2. 诊断客户端              --> 发送不可变证据给隔离诊断沙箱      |
-|  3. 确定性策略引擎          --> 判定 Risk，计算 planDigest        |
-|  4. 人工审批门禁            --> 校验 SRE 授权与签名一致性         |
-|  5. 类型化执行器 (Executor) --> 唯一允许修改 Workload 的组件     |
-|  6. 审计日志器 (Audit)      --> 落盘防篡改哈希链                  |
-+-----------------------------------------------------------------+
-```
+真实 DeepSeek r5 使用 36 个语义有效 case。严格决策合同通过 28/36，危险最终方案为 0/36；r6 有界迭代回退到 26/36，因此项目保留 v4 基线，没有把更复杂流程包装成提升。
 
-- **物理读写隔离**：DeepSeek 与诊断服务运行于无 K8s 写权限沙箱，不挂载任何写凭据。
-- **禁止自由代码生成**：LLM 仅能选择预定义的 5 个 Typed Action，从根源杜绝通用 Shell 注入。
-- **Fail-Closed 兜底**：无匹配 Policy、证据不充分、审计写失败或核验超时，全部安全退出并升级人工。
-
----
-
-## 8. 演练交付物哈希与复现指南
-
-本篇博客引用的 6 张核心截图已固化至代码仓库，SHA-256 校验和如下：
-
-| 文件名 | SHA-256 校验和 | 内容摘要 |
-| :--- | :--- | :--- |
-| `01-aegisops-incident-list.png` | `e7f4f7ea9053831a209ae1892b80e28e75aa650129ea3b56f43f035f88f37121` | 控制台事故总览与列表 |
-| `02-aegisops-awaiting-approval.png` | `c9d427bdca6a0cdb61bbfe6403511626d0537e64ee7d3768bab582172ddde0ed` | AwaitingApproval 详情与 planDigest |
-| `03-grafana-oom-timeline.png` | `d2ee41442031748747ee12a0336773bcfae6efc02447a30c77c80b5747b179f1` | 真实 50s 阶梯内存 OOM 时序 |
-| `04-tempo-distributed-traces.png` | `f1daed2701b98e2ac87c852bb57cd04a57545fe8ce41655f19ec256946c1b671` | Tempo 分布式追踪瀑布图 |
-| `05-aegisops-execution-audit.png` | `c71ef2a059d9711680828963747c1a72232403160df19ab9a333bbc4e9084ecb` | 执行闭环与连续审计日志流 |
-| `06-aegisops-resolved-overview.png` | `68957788dd71e584954bc712a574e78420d92cc8e02654cc7819dc40c5058fe5` | Resolved 最终恢复态与验证 |
-
-### 本地沙箱一键复现
+本地默认使用 fake provider，可在不产生模型费用的情况下验证控制面：
 
 ```bash
-# 1. 克隆开源仓库并完成工具链校验
-git clone https://github.com/user27c/aegisops.git && cd aegisops
-make verify
+git clone https://github.com/user27c/aegisops.git
+cd aegisops
 
-# 2. 启动本地 Kind 沙箱与全量可观测性栈
-scripts/dev-up.sh --context kind-aegisops-dev --profile full
-
-# 3. 运行受控 OOM 故障自愈测试套件
-make test-envtest
+scripts/bootstrap-tools.sh
+scripts/init-local-config.sh
+kind create cluster --name aegisops-dev
+make dev-up CONTEXT=kind-aegisops-dev PROFILE=full TAG=dev
+make smoke CONTEXT=kind-aegisops-dev
 ```
 
-- **开源仓库**：[GitHub - user27c/aegisops](https://github.com/user27c/aegisops)
-- **设计蓝图**：[docs/design/aegisops-implementation-blueprint.md](https://github.com/user27c/aegisops/blob/main/docs/design/aegisops-implementation-blueprint.md)
+完整 E2E 会创建隔离的 `kind-aegisops-e2e` 集群：
+
+```bash
+scripts/e2e-up.sh --run-id local --profile full
+make test-e2e
+```
+
+- [GitHub 仓库](https://github.com/user27c/aegisops)
+- [安全模型](https://github.com/user27c/aegisops/blob/main/docs/security-model.md)
+- [评估方法与结果](https://github.com/user27c/aegisops/blob/main/docs/evaluation.md)
+- [v0.2.0 Release 与 SBOM](https://github.com/user27c/aegisops/releases/tag/v0.2.0)
+- [六张截图 SHA-256 与云端事实](https://github.com/user27c/aegisops/blob/main/docs/cloud-oom-reshoot.md)
